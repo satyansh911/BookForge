@@ -27,7 +27,8 @@ exports.registerUser = async (req, res) => {
             res.status(400).json({ message: 'Invalid user data' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('registerUser error:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 };
 
@@ -47,7 +48,8 @@ exports.loginUser = async (req, res) => {
             res.status(401).json({ message: 'Invalid credentials.' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('loginUser error:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 };
 
@@ -62,7 +64,8 @@ exports.getProfile = async (req, res) => {
             isPro: user.isPro,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('getProfile error:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 };
 
@@ -80,6 +83,7 @@ exports.updateUserProfile = async (req, res) => {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('updateUserProfile error:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
     }
 };

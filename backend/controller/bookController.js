@@ -13,7 +13,8 @@ const createBook = async (req, res) => {
             subtitle,
             chapters,
         });
-        res.status(201).json(book);
+            const savedBook = await book.save();
+            res.status(201).json(savedBook);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
