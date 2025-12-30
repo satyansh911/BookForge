@@ -12,19 +12,25 @@ const exportRoutes = require("./routes/exportRoutes");
 const app = express();
 
 app.use(
-    cors({
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://book-forge-lovat.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
 );
 
 connectDB();
 
 app.use(express.json());
 
-// Serve uploaded files from /uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.get("/", (req, res) => {
+  res.send("BookForge API is running 🚀");
+});
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
@@ -33,5 +39,5 @@ app.use("/api/export", exportRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
