@@ -47,11 +47,12 @@ const Testimonials = () => {
                         <div className='flex items-center space-x-4'>
                             <div className='relative'>
                                 <div className='absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full blur opacity-30'></div>
-                                <img
-                                    className='relative w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-lg'
-                                    src={testimonial.avatar}
-                                    alt={testimonial.author}
-                                />
+                                <div className='relative w-14 h-14 rounded-full ring-2 ring-white shadow-lg overflow-hidden bg-white flex items-center justify-center'>
+                                    <LottieSafeWrapper 
+                                        src={testimonial.avatar}
+                                        size={90}
+                                    />
+                                </div>
                             </div>
                             <div className='flex-1'>
                                 <p className='font-semibold text-gray-900 text-base'>{testimonial.author}</p>
