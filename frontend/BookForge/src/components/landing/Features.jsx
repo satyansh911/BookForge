@@ -1,5 +1,6 @@
 import React from 'react'
 import {FEATURES} from '../../utils/data.js'
+import LottieSafeWrapper from '../ui/LottieSafeWrapper.jsx'
 
 const Features = () => {
   return (
@@ -26,21 +27,20 @@ const Features = () => {
             </div>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
                 {FEATURES.map((feature, index) => {
-                    const Icon = feature.icon;
                     return(
                         <div 
                             key={index}
-                            className='group relative bg-white rounded-2xl p-8 border border-gray-100 hover:border-violet-200 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1'
+                            className='group relative bg-white rounded-2xl p-8 border border-gray-100 text-center hover:border-violet-200 transition-all duration-300 hover:shadow-xl hover:shadow-violet-500/10 hover:-translate-y-1'
                         >
-                            <div className='absolute inset-0 bg-gradient-to-br from-violet-50/0 to-purple-50/0 group-hover:from-violet-50/50 group-hover:to-purple-50/30 rounded-2xl transition-all duration-300'></div>
+                            <div className='absolute inset-0 bg-gradient-to-br from-violet-50/0 to-purple-50/0 group-hover:from-violet-50/50 group-hover:to-purple-50/30  rounded-2xl transition-all duration-300'></div>
                             <div className='relative space-y-4'>
                                 <div
-                                    className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center shadow-lg shadow-${feature.gradient}/20 group-hover:scale-110 transition-transform duration-300`}
+                                    className={`w-14 h-14 mx-auto bg-gradient-to-br ${feature.gradient} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
                                 >
-                                    <Icon className='w-7 h-7 text-white'/>
+                                    <LottieSafeWrapper src={feature.lottie} size={40} />
                                 </div>
                                 <div>
-                                    <h3 className='text-xl font-bold text-gray-900 mb-3 group-hover:text-violet-900 transition-colors'>
+                                    <h3 className='text-xl font-bold text-gray-900 mb-3 group-hover:text-violet-900  transition-colors'>
                                         {feature.title}
                                     </h3>
                                     <p className='text-gray-600 leading-relaxed text-sm'>

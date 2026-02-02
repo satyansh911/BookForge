@@ -3,6 +3,7 @@ import {useState, useEffect} from 'react'
 import {useAuth} from '../../context/AuthContext.jsx'
 import ProfileDropdown from './ProfileDropdown.jsx'
 import {Menu, X, BookOpen, LogOut} from 'lucide-react'
+import LottieSafeWrapper from '../ui/LottieSafeWrapper.jsx'
 
 const Navbar = () => {
   const {user, logout, isAuthenticated} = useAuth()
@@ -28,9 +29,7 @@ const Navbar = () => {
       <div className='max-w-7xl mx-auto px-6 lg:px-8'>
         <div className='flex items-center justify-between h-16'>
         <a href='/' className='flex items-center space-x-2.5 group'>
-          <div className='w-9 h-9 bg-gradient-to-br from-violet-400 to-purple-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:shadow-violet-500/40 transition-all duration-300 group-hover:scale-105'>
-            <BookOpen className='w-5 h-5 text-white'/>
-          </div>
+          <LottieSafeWrapper src="/logo.json" size={60} />
           <span className='text-xl font-semibold text-gray-900 tracking-tight'>
             BookForge
           </span>
@@ -104,10 +103,12 @@ const Navbar = () => {
                     <div className='text-xs text-gray-500'>{user?.email}</div>
                   </div>
                 </div>
-                <button onClick={logout} className='w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2'>
+                <div className='flex items-center justify-between gap-2'>
+                  <button onClick={logout} className='w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2'>
                   <LogOut className='w-4 h-4'/>
                   <span>Sign out</span>
-                </button>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className='space-y-2'>

@@ -1,6 +1,7 @@
 import React from 'react'
 import {Star, Quote} from 'lucide-react'
 import { TESTIMONIALS } from '../../utils/data'
+import LottieSafeWrapper from '../ui/LottieSafeWrapper'
 
 const Testimonials = () => {
   return (
@@ -10,7 +11,7 @@ const Testimonials = () => {
         <div className='max-w-7xl mx-auto px-6 lg:px-8 relative'>
             <div className='text-center mb-20 space-y-4'>
                 <div className='inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-vioelt-100 shadow-sm'>
-                    <Star className='w-4 h-4 text-violet-600 fill-violet-600'/>
+                    <LottieSafeWrapper src="/star.json" size={20} />
                     <span className='text-sm font-semibold text-violet-900'>Testimonials</span>
                 </div>
                 <h2 className='text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight'>
@@ -29,8 +30,8 @@ const Testimonials = () => {
                         key={index}
                         className='group relative bg-white/80 backdrop-blur-sm rounded-3xl p-8 border border-gray-100 hover:border-violet-200 hover:shadow-2xl hover:shadow-violet-500/10 transition-all duration-300 hover:-translate-y-2'
                     >
-                        <div className='absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/30 rotate-6 group-hover:rotate-12 transition-transform duration-300'>
-                            <Quote className='w-6 h-6 text-white'/>
+                        <div className='absolute -top-4 -left-4 w-12 h-12 flex items-center justify-center rotate-6 group-hover:rotate-12 transition-transform duration-300'>
+                            <LottieSafeWrapper src="/quotes.json" size={50} />
                         </div>
                         <div className='flex items-center space-x-1 mb-6'>
                             {[...Array(testimonial.rating)].map((_, i) => (

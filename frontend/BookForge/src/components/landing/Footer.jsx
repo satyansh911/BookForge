@@ -1,4 +1,5 @@
 import {BookOpen, Twitter, Linkedin, Github} from 'lucide-react'
+import LottieSafeWrapper from '../ui/LottieSafeWrapper'
 
 const Footer = () => {
   return (
@@ -10,9 +11,7 @@ const Footer = () => {
             <div className='py-16 grid grid-cols-1 md:grid-cols-12 gap-12'>
                 <div className='md:col-span-5 space-y-6'>
                     <a href="/" className='flex items-center spaxe-x-2.5 group'>
-                        <div className='w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 group-hover:shadow-violet-500/50 transition-all duration-300 group-hover:scale-105'>
-                            <BookOpen className='w-5 h-5 text-white'/>
-                        </div>
+                        <LottieSafeWrapper src="/logo.json" size={50} />
                         <span className='text-xl font-semibold tracking-tight'>BookForge</span>
                     </a>
                     <p className='text-gray-400 leading-relaxed max-w-sm'>
@@ -20,25 +19,25 @@ const Footer = () => {
                     </p>
                     <div className='flex items-center space-x-3 pt-2'>
                         <a
-                            href="https://twitter.com/"
-                            className='w-10 h-10 bg-white/5 hover:bg-violet-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
+                            href="https://x.com/satyansh009"
+                            className='w-10 h-10 bg-white hover:bg-white rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
                             aria-label='Twitter'
                         >
-                            <Twitter className='w-5 h-5'/>
+                            <LottieSafeWrapper src="/x.json" size={30} />
                         </a>
                         <a
-                            href="https://linkedin.com/"
-                            className='w-10 h-10 bg-white/5 hover:bg-violet-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
+                            href="https://www.linkedin.com/in/satyansh-singh-b27058292/"
+                            className='w-10 h-10 bg-white hover:bg-white rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
                             aria-label='LinkedIn'
                         >
-                            <Linkedin className='w-5 h-5'/>
+                            <LottieSafeWrapper src="/linkedin.json" size={30} />
                         </a>
                         <a
-                            href="https://github.com/"
-                            className='w-10 h-10 bg-white/5 hover:bg-violet-600 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
+                            href="https://github.com/satyansh911"
+                            className='w-10 h-10 bg-white hover:bg-white rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110'
                             aria-label='GitHub'
                         >
-                            <Github className='w-5 h-5'/>
+                            <LottieSafeWrapper src="/github.json" size={30} />
                         </a>
                     </div>
                 </div>
@@ -90,7 +89,7 @@ const Footer = () => {
                         © {new Date().getFullYear()} BookForge. All rights reserved.
                     </p>
                     <p className='text-gray-500 text-sm'>
-                        Made with<span className='text-violet-400'>♥</span> for creators 
+                        Made with<LottieSafeWrapper src="/heart.json" size={30} /> 
                     </p>
                 </div>
             </div>

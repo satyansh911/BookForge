@@ -2,6 +2,8 @@ import {ArrowRight, Sparkles, BookOpen, Zap, Book} from 'lucide-react'
 import {useAuth} from '../../context/AuthContext.jsx'
 import {Link} from "react-router-dom";
 import HERO_IMG from '../../assets/HERO_IMG.png'
+import LottieSafeWrapper from '../ui/LottieSafeWrapper.jsx';
+import ImageSlider from '../ui/ImageSlider.jsx';
 
 const Hero = () => {
     const {isAuthenticated} = useAuth()
@@ -13,7 +15,7 @@ const Hero = () => {
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-16 items-center'>
                 <div className='max-w-xl space-y-8'>
                     <div className='inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-violet-100 shadow-sm'>
-                        <Sparkles className='w-4 h-4 text-violet-600'/>
+                        <LottieSafeWrapper src="/ai.json" size={32} />
                         <span className='text-sm font-medium text-violet-900'>
                             AI-Powered Publishing
                         </span>
@@ -64,16 +66,12 @@ const Hero = () => {
                     <div className='relative'>
                         <div className='absolute -inset-4 bg-gradient-to-r from-violet-600 to-purple-600 rounded-3xl opacity-20 blur-2xl'></div>
                         <div className='relative bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100'>
-                            <img
-                                src={HERO_IMG}
-                                alt="BookForge Creator Dashboard"
-                                className='w-full h-auto'
-                            />
+                            <div className='w-full h-[320px]'>
+                                <ImageSlider />
+                            </div>
                             <div className='absolute top-6 right-6 bg-white rounded-2xl shadow-xl p-4 backdrop-blur-sm border border-gray-100 animate-in fade-in slide-in-from-right duration-700'>
                                 <div className='flex items-center space-x-3'>
-                                    <div className='w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center'>
-                                        <Zap className='w-5 h-5 text-white'/>
-                                    </div>
+                                    <LottieSafeWrapper src="/lightning.json" size={50} />
                                     <div>
                                         <div className='text-xs text-gray-500'>Processing</div>
                                         <div className='text-sm font-semibold text-gray-900'>
@@ -84,9 +82,7 @@ const Hero = () => {
                             </div>
                             <div className='aboslute bottom-6 left-6 bg-white rounded-2xl shadow-xl p-4 backdrop-blur-sm border border-gray-100 animate-in fade-in slide-in-from-left duration-700 delay-300'>
                                 <div className='flex items-center space-x-2'>
-                                    <div className='w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center'>
-                                        <BookOpen className='w-5 h-5 text-white'/>
-                                    </div>
+                                    <LottieSafeWrapper src="/pages.json" size={40} />
                                     <div>
                                         <div className='text-xs text-gray-500'>Completed</div>
                                         <div className='text-sm font-semibold text-gray-900'>
