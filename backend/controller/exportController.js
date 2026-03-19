@@ -473,25 +473,26 @@ const TYPOGRAPHY = {
         sansItalic: 'Helvetica-Oblique',
     },
     sizes: {
-        title: 28,
-        author: 16,
-        chapterTitle: 20,
-        h1: 18,
-        h2: 16,
-        h3: 14,
-        body: 11,
-        caption: 9,
+        title: 48,
+        author: 18,
+        chapterTitle: 32,
+        h1: 24,
+        h2: 20,
+        h3: 16,
+        body: 12,
+        caption: 10,
     },
     spacing: {
-        paragraphSpacing: 12,
-        chapterSpacing: 24,
-        headingSpacing: {before: 16, after: 8},
-        listSpacing: 6,
+        paragraphSpacing: 14,
+        chapterSpacing: 40,
+        headingSpacing: {before: 32, after: 16},
+        listSpacing: 8,
     },
     colors: {
-        text: "#333333",
-        heading: "#1A1A1A",
-        accent: "#4F46E5",
+        text: "#0D0C0C",
+        heading: "#0D0C0C",
+        accent: "#AD4733",
+        surface: "#C5B09B",
     },
 };
 
@@ -504,7 +505,11 @@ const renderInlineTokens = (doc, tokens, options = {}) => {
         lineGap: options.lineGap || 2,
     };
 
-    let currentFont = TYPOGRAPHY.fonts.serif;
+    const baseFont = options.baseFont || TYPOGRAPHY.fonts.sans;
+    const boldFont = options.boldFont || TYPOGRAPHY.fonts.sansBold;
+    const italicFont = options.italicFont || TYPOGRAPHY.fonts.sansItalic;
+
+    let currentFont = baseFont;
     let textBuffer = "";
 
     const flushBuffer = () => {
@@ -523,16 +528,16 @@ const renderInlineTokens = (doc, tokens, options = {}) => {
             textBuffer += token.content;
         } else if(token.type === 'strong_open'){
             flushBuffer();
-            currentFont = TYPOGRAPHY.fonts.serifBold;
+            currentFont = boldFont;
         } else if(token.type === 'strong_close'){
             flushBuffer();
-            currentFont = TYPOGRAPHY.fonts.serif;
+            currentFont = baseFont;
         } else if(token.type === 'em_open'){
             flushBuffer();
-            currentFont = TYPOGRAPHY.fonts.serifItalic;
+            currentFont = italicFont;
         } else if(token.type === 'em_close'){
             flushBuffer();
-            currentFont = TYPOGRAPHY.fonts.serif;
+            currentFont = baseFont;
         } else if(token.type === 'code_inline'){
             flushBuffer();
             doc.font('Courier').text(token.content, {
@@ -585,7 +590,7 @@ const renderMarkdown = (doc, markdown) => {
                 );
 
                 doc
-                    .font(TYPOGRAPHY.fonts.sansBold)
+                    .font(TYPOGRAPHY.fonts.serifBold)
                     .fontSize(fontSize)
                     .fillColor(TYPOGRAPHY.colors.heading)
 
@@ -593,6 +598,9 @@ const renderMarkdown = (doc, markdown) => {
                     renderInlineTokens(doc, tokens[i + 1].children, {
                         align: 'left',
                         lineGap: 0,
+                        baseFont: TYPOGRAPHY.fonts.serifBold,
+                        boldFont: TYPOGRAPHY.fonts.serifBold,
+                        italicFont: TYPOGRAPHY.fonts.serifItalic,
                     });
                     i++;
                 }
@@ -606,7 +614,7 @@ const renderMarkdown = (doc, markdown) => {
                 }
             } else if(token.type === 'paragraph_open'){
                 doc
-                    .font(TYPOGRAPHY.fonts.serif)
+                    .font(TYPOGRAPHY.fonts.sans)
                     .fontSize(TYPOGRAPHY.sizes.body)
                     .fillColor(TYPOGRAPHY.colors.text);
 
@@ -662,7 +670,7 @@ const renderMarkdown = (doc, markdown) => {
                     orderedListCounter += 1;
                 }
                 doc
-                    .font(TYPOGRAPHY.fonts.serif)
+                    .font(TYPOGRAPHY.fonts.sans)
                     .fontSize(TYPOGRAPHY.sizes.body)
                     .fillColor(TYPOGRAPHY.colors.text);
                 doc.text(bullet, { indent: 20, continued: true });
@@ -738,6 +746,16 @@ const exportAsPDF = async (req, res) => {
             `attachment; filename="${book.title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf"`
         );
 
+        const drawBackground = (d) => {
+            d.save()
+             .rect(0, 0, d.page.width, d.page.height)
+             .fill(TYPOGRAPHY.colors.surface)
+             .restore();
+        };
+
+        doc.on('pageAdded', () => drawBackground(doc));
+        drawBackground(doc);
+
         doc.pipe(res);
         if(book.coverImage && !book.coverImage.includes("pravatar")){
             const imagePath = book.coverImage.substring(1);
@@ -758,7 +776,7 @@ const exportAsPDF = async (req, res) => {
         }
 
         doc
-            .font(TYPOGRAPHY.fonts.sansBold)
+            .font(TYPOGRAPHY.fonts.serifBold)
             .fontSize(TYPOGRAPHY.sizes.title)
             .fillColor(TYPOGRAPHY.colors.heading)
             .text(book.title, { align: 'center'});
@@ -785,10 +803,10 @@ const exportAsPDF = async (req, res) => {
                 try{
                     doc.addPage();
                     doc
-                        .font(TYPOGRAPHY.fonts.sansBold)
+                        .font(TYPOGRAPHY.fonts.serifBold)
                         .fontSize(TYPOGRAPHY.sizes.chapterTitle)
                         .fillColor(TYPOGRAPHY.colors.heading)
-                        .text(chapter.title || `Chapter ${index + 1}`, { align: 'left' });
+                        .text(chapter.title || `Chapter ${index + 1}`, { align: 'center' });
 
                     doc.moveDown(
                         TYPOGRAPHY.spacing.chapterSpacing / TYPOGRAPHY.sizes.body

@@ -1,202 +1,152 @@
 import { useMemo, useState } from "react"
-import {Sparkles, Type, Eye, Maximize2} from "lucide-react"
+import { Sparkles, Eye, Maximize2, Type, FileText } from "lucide-react"
 import Button from "../ui/Button"
 import InputField from "../ui/InputField"
 import SimpleMDEditor from "./SimpleMDEditor"
 
 const ChapterEditorTab = ({
-    book={
-        title: "Untitled",
-        chapters: [
-            {
-                title: "Chapter 1",
-                content: "-"
-            }
-        ]
-    },
-    selectedChapterIndex=0,
-    onChapterChange=() => {},
-    onGenerateChapterContent=() => {},
-    isGenerating,
+  book,
+  selectedChapterIndex,
+  onChapterChange,
+  onGenerateChapterContent,
+  isGenerating,
 }) => {
-    const [isPreviewMode, setIsPreviewMode] = useState(false);
-    const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const formatMarkdown = (content) => {
-        return content
-            .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-4 mt-6">$1</h3>')
-            .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-4 mt-8">$1</h2>')
-            .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-6 mt-8">$1</h1>')
+  const formatMarkdown = (content) => {
+    return content
+      .replace(/^### (.*$)/gm, '<h3 class="text-2xl font-serif font-bold mb-6 mt-10 tracking-tight">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-3xl font-serif font-black mb-8 mt-12 tracking-tighter uppercase">$2</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-5xl font-serif font-black mb-10 mt-16 tracking-tighter uppercase">$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-primary">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-secondary">$1</em>')
+      .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-accent pl-8 italic text-secondary my-12 text-xl font-serif leading-relaxed">$1</blockquote>')
+      .replace(/^\- (.*$)/gm, '<li class="ml-6 mb-3 font-sans list-none flex gap-4"><span class="text-accent">•</span> $1</li>')
+      .split('\n\n')
+      .map(p => {
+        let trimmed = p.trim();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('<')) return trimmed;
+        return `<p class="mb-8 font-serif text-lg leading-relaxed text-primary">${trimmed}</p>`;
+      })
+      .join('');
+  };
 
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+  const mdeOptions = useMemo(() => ({
+    autofocus: true,
+    spellChecker: false,
+    placeholder: "START TYPING THE FUTURE...",
+    toolbar: [
+      "bold", "italic", "heading", "|",
+      "quote", "unordered-list", "ordered-list", "|",
+      "link", "image", "|",
+      "preview", "side-by-side", "fullscreen",
+    ],
+  }), []);
 
-            .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-violet-500 pl-4 italic text-gray-700 my-4">$1</blockquote>')
+  const currentChapter = book.chapters[selectedChapterIndex];
 
-            .replace(/^\- (.*$)/gm, '<li class="ml-4 mb-1">• $1</li>')
-            .replace(/(<li>.*<\/li>)/gs, '<ul class="my-4">$1</ul>')
+  if (!currentChapter) return null;
 
-            .replace(/^\d+\. (.*$)/gm, '<li class="ml-4 mb-1 list-decimal">$1</li>')
-            .replace(/(<li class="ml-4 mb-1 list-decimal">.*<\/li>)/gs, '<ol class="my-4 ml-4">$1</ol>')
+  const wordCount = currentChapter.content ? currentChapter.content.split(/\s+/).filter(w => w.length > 0).length : 0;
 
-            .split('\n\n')
-            .map(paragraph => {
-                paragraph = paragraph.trim();
-                if (!paragraph) return '';
-                if(paragraph.startsWith('<')) return paragraph;
-                return `<p class="mb-4 text-justify">${paragraph}</p>`;
-            })
-            .join('');
-    };
-
-    const mdeOptions = useMemo(() => {
-        return {
-            autofocus: true,
-            spellChecker: false,
-            toolbar: [
-                "bold", "italic", "heading", "|",
-                "quote", "unordered-list", "ordered-list", "|",
-                "link", "image", "|",
-                "preview", "side-by-side", "fullscreen",
-            ],
-        };
-    }, []);
-
-    if(selectedChapterIndex === null || !book.chapters[selectedChapterIndex]){
-        return (
-            <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Type className="w-8 h-8 text-gray-400"/>
-                    </div>
-                    <p className="text-gray-500 text-lg">Select a chapter to start editing</p>
-                    <p className="text-gray-400 text-sm mt-1">Choose from the sidebar to begin writing</p>
-                </div>
-            </div>
-        );
-    }
-    const currentChapter = book.chapters[selectedChapterIndex];
   return (
-    <div className={`${isFullscreen ? "fixed isnet-0 z-50 bg-white" : "flex-1"} flex flex-col`}>
-        <div className="border-b border-gray-100 bg-white">
-            <div className="px-8 py-6">
-                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-0 justify-between">
-                    <div>
-                        <h1 className="text-lg md:text-2xl font-bold text-gray-900">Chapter Editor</h1>
-                        <p className="text-sm md:text-base text-gray-500 mt-1">
-                            Editing: {currentChapter.title || `Chapter ${selectedChapterIndex + 1}`}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                            <button
-                                onClick={() => setIsPreviewMode(false)}
-                                className={`px-3 py-2 text-sm font-medium transition-colors ${
-                                    !isPreviewMode
-                                        ? "bg-violet-50 text-violet-700 border-r border-violet-200"
-                                        : "text-gray-600 hover:bg-gray-50"
-                                }`}
-                            >
-                                Edit
-                            </button>
-                            <button
-                                onClick={() => setIsPreviewMode(true)}
-                                className={`px-3 py-2 text-sm font-medium transition-colors ${
-                                    isPreviewMode
-                                        ? "bg-violet-50 text-violet-700"
-                                        : "text-gray-600 hover:bg-gray-50"
-                                }`}
-                            >
-                                Preview
-                            </button>
-                        </div>
-                        <button
-                            onClick={() => setIsFullscreen(!isFullscreen)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
-                            title="Toggle Fullscreen"
-                        >
-                            <Maximize2 className="w-4 h-4"/>
-                        </button>
-                        <Button
-                            onClick={() => onGenerateChapterContent(selectedChapterIndex)}
-                            isLoading={isGenerating === selectedChapterIndex}
-                            icon={Sparkles}
-                            size="sm"
-                        >
-                            Generate with AI
-                        </Button>
-                    </div>
-                </div>
+    <div className={`${isFullscreen ? "fixed inset-0 z-[100] bg-white" : "h-full"} flex flex-col animate-in fade-in duration-500`}>
+      <div className="flex-1 flex flex-col p-8 md:p-12 gap-12 max-w-6xl mx-auto w-full">
+        {/* Editor Controls Overlay */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-8 pb-12 border-b border-border/50">
+          <div className="flex-1 space-y-12 w-full">
+            <div className="space-y-4">
+              <p className="text-[10px] tracking-[0.5em] text-muted uppercase">Selected Segment</p>
+              <input
+                value={currentChapter.title || ""}
+                name="title"
+                onChange={onChapterChange}
+                placeholder="CHAPTER IDENTIFIER"
+                className="w-full text-5xl font-serif font-black uppercase outline-none bg-transparent tracking-tighter"
+              />
             </div>
-        </div>
-        <div className="flex-1 overflow-hidden">
-            <div className="h-full bg-white px-8 py-6">
-                <div className="h-full bg-white">
-                    <div className="space-y-6 h-full flex flex-col">
-                        <div>
-                            <InputField
-                                label="Chapter Title"
-                                value={currentChapter.title || ""}
-                                name="title"
-                                onChange={onChapterChange}
-                                placeholder="Enter chapter title..."
-                                className="text-xl font-semibold"
-                            />
-                        </div>
+            
+            <div className="flex gap-4">
+               <button
+                onClick={() => setIsPreviewMode(false)}
+                className={`py-2 px-8 text-[11px] tracking-[0.2em] font-bold border transition-all ${!isPreviewMode ? 'bg-primary text-white border-primary' : 'bg-transparent text-muted border-border hover:border-primary hover:text-primary'}`}
+              >
+                EDIT MODE
+              </button>
+              <button
+                onClick={() => setIsPreviewMode(true)}
+                className={`py-2 px-8 text-[11px] tracking-[0.2em] font-bold border transition-all ${isPreviewMode ? 'bg-primary text-white border-primary' : 'bg-transparent text-muted border-border hover:border-primary hover:text-primary'}`}
+              >
+                PREVIEW
+              </button>
+            </div>
+          </div>
 
-                        <div className="flex-1 min-h-0">
-                            {isPreviewMode ? (
-                                <div className="h-full border border-gray-200 rounded-lg overflow-y-auto">
-                                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Eye className="w-4 h-4"/>
-                                            <span>Preview Mode</span>
-                                        </div>
-                                    </div>
-                                    <div className="p-8">
-                                        <h1 className="text-3xl font-bold mb-6 text-gray-900">
-                                            {currentChapter.title || "Untitled Chapter"}
-                                        </h1>
-                                        <div 
-                                            className="formatted-content"
-                                            style={{
-                                                fontFamily: "Charter, Georgia, 'Times New Roman', serif",
-                                                lineHeight: 1.7
-                                            }}
-                                            dangerouslySetInnerHTML={{
-                                                __html: currentChapter.content ? formatMarkdown(currentChapter.content) : '<p class="text-gray-400 italic">No content yet. Start writing to see the preview here.</p>'
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="h-full">
-                                    <SimpleMDEditor
-                                        value={currentChapter.content || ""}
-                                        onChange={(value) => onChapterChange({target:{name: "content", value}})}
-                                        options={mdeOptions}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
-                            <div className="flex items-center gap-4">
-                                <span>
-                                    Words: {currentChapter.content ? currentChapter.content.split(/\s+/).filter(word => word.length > 0).length : 0}
-                                </span>
-                                <span>
-                                    Characters: {currentChapter.content ? currentChapter.content.length : 0}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span>Auto-saved</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+          <div className="flex items-center gap-4">
+             <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-3 border border-border hover:bg-black/5 transition-colors"
+              title="Focus Mode"
+            >
+              <Maximize2 size={18} />
+            </button>
+            <Button
+              onClick={() => onGenerateChapterContent(selectedChapterIndex)}
+              isLoading={isGenerating === selectedChapterIndex}
+              className="flex items-center gap-4 py-3"
+              variant="outline"
+            >
+              <Sparkles size={16} />
+              <span className="text-[11px] tracking-[0.2em] font-bold">AI SYNTHESIS</span>
+            </Button>
+          </div>
         </div>
+
+        {/* Content Area */}
+        <div className="flex-1 min-h-0 relative">
+          {isPreviewMode ? (
+            <div className="h-full overflow-y-auto bg-surface p-12 md:p-20 shadow-inner border border-border">
+               <div className="max-w-2xl mx-auto space-y-12">
+                  <div className="text-center space-y-4">
+                    <p className="text-[10px] tracking-[0.5em] text-muted uppercase">Segment {(selectedChapterIndex + 1).toString().padStart(2, '0')}</p>
+                    <h1 className="text-5xl font-serif font-black tracking-tighter uppercase leading-none">
+                      {currentChapter.title || "UNTITLED"}
+                    </h1>
+                    <div className="w-12 h-[2px] bg-accent mx-auto mt-8" />
+                  </div>
+                  <div 
+                    className="reader-content font-serif leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: currentChapter.content ? formatMarkdown(currentChapter.content) : '<p class="text-muted italic text-center text-sm tracking-widest uppercase">Manuscript is empty.</p>'
+                    }}
+                  />
+               </div>
+            </div>
+          ) : (
+            <div className="h-full border border-border bg-white focus-within:border-primary transition-colors">
+              <SimpleMDEditor
+                value={currentChapter.content || ""}
+                onChange={(value) => onChapterChange({ target: { name: "content", value } })}
+                options={mdeOptions}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Status Bar */}
+        <div className="flex justify-between items-center text-[10px] tracking-[0.2em] font-bold uppercase text-muted">
+          <div className="flex gap-8">
+            <span>Words: {wordCount}</span>
+            <span>Est. Read: {Math.ceil(wordCount / 200)}m</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-accent" />
+            <span>Buffer Synchronized</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

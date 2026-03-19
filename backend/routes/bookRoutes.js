@@ -6,7 +6,8 @@ const {
     getBookById, 
     updateBook, 
     deleteBook, 
-    updateBookCover 
+    updateBookCover,
+    uploadPdf
 } = require('../controller/bookController');
 const { protect } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
@@ -14,7 +15,8 @@ const upload = require('../middlewares/uploadMiddleware');
 router.use(protect);
 
 router.route('/').post(createBook).get(getBooks);
+router.route('/upload-pdf').post(upload.single('pdf'), uploadPdf);
 router.route('/:id').get(getBookById).put(updateBook).delete(deleteBook);
-router.route('/cover/:id').put(upload, updateBookCover);
+router.route('/cover/:id').put(upload.single('coverImage'), updateBookCover);
 
 module.exports = router;

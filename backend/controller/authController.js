@@ -21,6 +21,9 @@ exports.registerUser = async (req, res) => {
         if(user){
             res.status(201).json({
                 message: 'User registered successfully',
+                _id: user._id,
+                name: user.name,
+                email: user.email,
                 token: generateToken(user._id),
             });
         } else{
@@ -61,6 +64,10 @@ exports.getProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             avatar: user.avatar,
+            pronouns: user.pronouns,
+            bio: user.bio,
+            occupation: user.occupation,
+            location: user.location,
             isPro: user.isPro,
         });
     } catch (error) {
@@ -74,10 +81,23 @@ exports.updateUserProfile = async (req, res) => {
         const user = await User.findById(req.user._id);
         if(user){
             user.name = req.body.name || user.name;
+            user.avatar = req.body.avatar || user.avatar;
+            user.pronouns = req.body.pronouns !== undefined ? req.body.pronouns : user.pronouns;
+            user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
+            user.occupation = req.body.occupation !== undefined ? req.body.occupation : user.occupation;
+            user.location = req.body.location !== undefined ? req.body.location : user.location;
+            
             const updatedUser = await user.save();
             res.json({
                 _id: updatedUser._id,
                 name: updatedUser.name,
+                email: updatedUser.email,
+                avatar: updatedUser.avatar,
+                pronouns: updatedUser.pronouns,
+                bio: updatedUser.bio,
+                occupation: updatedUser.occupation,
+                location: updatedUser.location,
+                isPro: updatedUser.isPro,
             });
         } else{
             res.status(404).json({ message: 'User not found' });

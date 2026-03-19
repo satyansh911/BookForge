@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import axiosInstance from "../utils/axiosInstance";
 
 const AuthContext = createContext();
 
@@ -37,11 +38,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = (userData, token) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
-    setIsAuthenticated(true);
+  const login = async (email, password) => {
+    try {
+      const response = await axiosInstance.post("/api/auth/login", { email, password });
+      const { token, ...userData } = response.data;
+      
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      setUser(userData);
+      setIsAuthenticated(true);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const signup = async (name, email, password) => {
+    try {
+      const response = await axiosInstance.post("/api/auth/register", { name, email, password });
+      const { token, ...userData } = response.data;
+      
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      setUser(userData);
+      setIsAuthenticated(true);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
@@ -64,6 +90,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
+    signup,
     logout,
     updateUser,
     checkAuthStatus,

@@ -19,23 +19,23 @@ const storage = multer.diskStorage({
 });
 
 function checkFileType(file, cb){
-    const filetypes = /jpeg|jpg|png|gif/;
+    const filetypes = /jpeg|jpg|png|gif|pdf/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = filetypes.test(file.mimetype);
 
     if(mimetype && extname){
         return cb(null, true);
     } else {
-        cb('Error: Images Only!');
+        cb('Error: Images or PDFs Only!');
     }
 }
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 2 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for PDFs
     fileFilter: function (req, file, cb) {
         checkFileType(file, cb);
     },
-}).single('coverImage');
+});
 
 module.exports = upload;

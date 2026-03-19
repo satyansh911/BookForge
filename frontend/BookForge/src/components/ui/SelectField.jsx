@@ -1,43 +1,32 @@
+import React from 'react'
+import { ChevronDown } from 'lucide-react'
 
-
-const SelectField = ({icon: Icon, label, name, options, ...props}) => {
+const SelectField = ({ icon: Icon, label, name, options, ...props }) => {
   return (
-    <div className="space-y-2">
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700">
+    <div className="space-y-4 group">
+      <label htmlFor={name} className="block text-[10px] tracking-[0.4em] text-muted uppercase">
         {label}
       </label>
-      <div className="relative">
+      <div className="relative border-b border-border focus-within:border-primary transition-colors pb-2 flex items-center">
         {Icon && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-            <Icon className="w-4 h-4 text-gray-400" />
+          <div className="absolute left-0 pointer-events-none">
+            <Icon className="w-4 h-4 text-muted" />
           </div>
         )}
         <select
           id={name}
           name={name}
           {...props}
-          className={`w-full h-11 px-3 py-2 border border-gray-200 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-ciolet-500 focus:border-transparent transition-all appearance-none ${Icon ? "pl-10" : ""}`}
+          className={`w-full bg-transparent text-lg font-serif appearance-none outline-none cursor-pointer ${Icon ? "pl-8" : ""}`}
         >
           {options.map((option) => (
-            <option key={option.value || option} value={option.value || option}>
+            <option key={option.value || option} value={option.value || option} className="bg-white text-primary">
               {option.label || option}
             </option>
           ))}
         </select>
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <svg
-            className="w-4 h-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>  
+        <div className="pointer-events-none ml-2">
+          <ChevronDown size={14} className="text-muted" />
         </div>
       </div>
     </div>

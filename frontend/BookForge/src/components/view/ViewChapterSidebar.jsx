@@ -16,13 +16,13 @@ const ViewChapterSidebar = ({
         />
       )}
       <div className={`
-      fixed lg:relative left-0 top-0 h-full w-80 bg-white border-r border-gray-100 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      fixed lg:relative left-0 top-0 h-full w-80 bg-surface border-r border-black/5 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        <div className="p-6 border-b boder-gray-100">
+        <div className="p-6 border-b border-black/5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <BookOpen className="w-5 h-5 text-violet-600"/>
-              <span className="font-medium text-gray-900">Chapters</span>
+              <BookOpen className="w-5 h-5 text-accent"/>
+              <span className="font-serif font-black uppercase text-[10px] tracking-[0.3em] text-primary">Chapters</span>
             </div>
             <button
               onClick={onClose}
@@ -41,17 +41,17 @@ const ViewChapterSidebar = ({
                 onClose();
               }}
               className={`
-                w-full text-left p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0
-                ${selectedChapterIndex === index ? 'bg-violet-50 border-l-4 border-l-violet-600' : ''}
+                w-full text-left p-4 hover:bg-black/5 transition-colors border-b border-black/5 last:border-b-0
+                ${selectedChapterIndex === index ? 'bg-black/5 border-l-4 border-l-accent' : ''}
               `}
             >
-              <div className={`font-medium text-sm truncate ${
-                 selectedChapterIndex === index ? 'text-violet-900' : 'text-gray-900'
+              <div className={`font-serif font-bold text-sm truncate uppercase tracking-tight ${
+                 selectedChapterIndex === index ? 'text-primary' : 'text-secondary'
               }`}>
                 {chapter.title}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Chapter {index + 1}
+              <div className="text-[10px] text-muted mt-1 uppercase tracking-widest">
+                Segment {index + 1}
               </div>
             </button>
           ))}

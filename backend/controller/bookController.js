@@ -103,6 +103,54 @@ const updateBookCover = async (req, res) => {
     }
 };
 
+const uploadPdf = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No PDF file uploaded' });
+        }
+
+        const fs = require('fs');
+        const pdf = require('pdf-parse');
+        
+        const dataBuffer = fs.readFileSync(req.file.path);
+        const data = await pdf(dataBuffer);
+        
+        // Extract title from filename (remove extension and timestamp)
+        const originalName = req.file.originalname.replace(/\.pdf$/i, '').split('-').slice(0, -1).join('-') || req.file.originalname;
+        
+        // Split text into "chapters" of ~5 KB for our reader
+        const text = data.text.trim();
+        const chapters = [];
+        const chunkSize = 5000;
+        
+        for (let i = 0; i < text.length; i += chunkSize) {
+            chapters.push({
+                title: `Section ${(chapters.length + 1).toString().padStart(2, '0')}`,
+                content: text.substring(i, i + chunkSize),
+                description: `Ingested Analysis: Part ${chapters.length + 1}`
+            });
+        }
+
+        const book = new Book({
+            userId: req.user._id,
+            title: originalName.toUpperCase() || "IMPORTED MONOGRAPH",
+            author: req.user.name || "Unknown Author",
+            chapters: chapters.slice(0, 50), // Cap at 50 chapters
+            status: 'draft'
+        });
+
+        const savedBook = await book.save();
+
+        // Clean up the uploaded file
+        fs.unlinkSync(req.file.path);
+
+        res.status(201).json(savedBook);
+    } catch (error) {
+        console.error("PDF Ingestion Error:", error);
+        res.status(500).json({ message: 'Failed to ingest PDF. Ensure it is text-readable and not secured.' });
+    }
+};
+
 module.exports = {
     createBook,
     getBooks,
@@ -110,4 +158,5 @@ module.exports = {
     updateBook,
     deleteBook,
     updateBookCover,
+    uploadPdf
 };

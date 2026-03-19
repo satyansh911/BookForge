@@ -22,4 +22,15 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+const premiumOnly = (req, res, next) => {
+    if (req.user && req.user.tier === 'premium') {
+        next();
+    } else {
+        res.status(403).json({ 
+            message: 'Premium membership required. Upgrade to unlock AI Synthesis.',
+            code: 'PREMIUM_REQUIRED'
+        });
+    }
+};
+
+module.exports = { protect, premiumOnly };

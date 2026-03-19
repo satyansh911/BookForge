@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { generateOutline, generateChapterContent } = require('../controller/aiController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, premiumOnly } = require('../middlewares/authMiddleware');
 
 router.use(protect);
 
-router.post('/generate-outline', generateOutline);
-router.post('/generate-chapter-content', generateChapterContent);
+router.post('/generate-outline', premiumOnly, generateOutline);
+router.post('/generate-chapter-content', premiumOnly, generateChapterContent);
 
 module.exports = router;

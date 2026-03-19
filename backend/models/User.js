@@ -22,9 +22,30 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    pronouns: {
+        type: String,
+        default: "",
+    },
+    bio: {
+        type: String,
+        default: "",
+    },
+    occupation: {
+        type: String,
+        default: "",
+    },
+    location: {
+        type: String,
+        default: "",
+    },
     isPro: {
         type: Boolean,
         default: false,
+    },
+    tier: {
+        type: String,
+        enum: ['free', 'premium'],
+        default: 'free',
     }
 }, { timestamps: true });
 
