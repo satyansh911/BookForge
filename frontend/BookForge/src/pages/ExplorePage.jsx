@@ -4,6 +4,7 @@ import InputField from '../components/ui/InputField';
 import Button from '../components/ui/Button';
 import Reveal from '../components/ui/Reveal';
 import BookCard from '../components/ui/BookCard';
+import toast from 'react-hot-toast';
 
 const ExplorePage = () => {
   const [query, setQuery] = useState("");

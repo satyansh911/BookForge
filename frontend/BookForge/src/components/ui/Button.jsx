@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
-const Button = ({ children, variant = 'primary', className = '', ...props }) => {
+const Button = ({ children, variant = 'primary', className = '', isLoading = false, ...props }) => {
   const buttonRef = useRef(null);
   const { contextSafe } = useGSAP({ scope: buttonRef });
 

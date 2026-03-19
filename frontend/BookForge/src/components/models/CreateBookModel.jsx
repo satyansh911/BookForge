@@ -22,6 +22,7 @@ import { useAuth } from "../../context/AuthContext"
 const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
   const { user } = useAuth();
 
+  const [creationMode, setCreationMode] = useState("synthesis"); // "synthesis" or "manual"
   const [step, setStep] = useState(1);
   const [bookTitle, setBookTitle] = useState("");
   const [numChapters, setNumChapters] = useState(5);
@@ -34,6 +35,7 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
 
   const resetModel = () => {
     setStep(1);
+    setCreationMode("synthesis");
     setBookTitle("");
     setNumChapters(5);
     setAiTopic("");
@@ -42,6 +44,15 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
     setIsGeneratingOutline(false);
     setIsFinalizingBook(false);
   }
+
+  const handleManualStart = () => {
+    if (!bookTitle) {
+      toast.error("Please provide a title for your manuscript.");
+      return;
+    }
+    setChapters([{ title: "Chapter 1", description: "Initial draft..." }]);
+    setStep(2);
+  };
 
   const handleGenerateOutline = async () => {
     if (!bookTitle || !numChapters) {
@@ -125,13 +136,31 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
     >
       {step === 1 && (
         <div className="space-y-12">
-          {user?.tier !== 'premium' ? (
+          {/* Mode Toggle */}
+          <div className="flex border-b border-border">
+            <button 
+              onClick={() => setCreationMode("synthesis")}
+              className={`flex-1 py-4 text-[10px] tracking-[0.3em] font-bold uppercase transition-all flex items-center justify-center gap-3 ${creationMode === 'synthesis' ? 'border-b-2 border-accent text-primary bg-surface-dark/50' : 'text-muted hover:text-secondary'}`}
+            >
+              <Sparkles size={14} />
+              AI Synthesis
+            </button>
+            <button 
+              onClick={() => setCreationMode("manual")}
+              className={`flex-1 py-4 text-[10px] tracking-[0.3em] font-bold uppercase transition-all flex items-center justify-center gap-3 ${creationMode === 'manual' ? 'border-b-2 border-primary text-primary bg-surface-dark/50' : 'text-muted hover:text-secondary'}`}
+            >
+              <Plus size={14} />
+              Manual Curation
+            </button>
+          </div>
+
+          {creationMode === "synthesis" && user?.tier !== 'premium' ? (
             <div className="p-12 border border-accent/20 bg-surface-dark space-y-8 text-center animate-in zoom-in duration-500">
                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
                  <Sparkles size={32} className="text-accent" />
                </div>
                <div className="space-y-4">
-                 <h3 className="text-2xl font-serif font-black uppercase tracking-tighter">Synthesis Tier Required</h3>
+                 <h3 className="text-2xl font-serif font-black uppercase tracking-tighter text-primary">Synthesis Tier Required</h3>
                  <p className="text-sm text-secondary font-serif italic max-w-md mx-auto leading-relaxed">
                    AI-driven monograph synthesis is an exclusive feature of our Synthesis tier. 
                    Join the ranks of advanced knowledge architects to unlock infinite intelligence.
@@ -148,11 +177,14 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
                    <span className="text-xs tracking-[0.2em] font-black uppercase">Upgrade to Synthesis</span>
                  </Button>
                </div>
-               <p className="text-[10px] tracking-widest text-muted uppercase font-bold pt-4">
-                 Manual curation remains free for all manuscripts.
-               </p>
+               <button 
+                 onClick={() => setCreationMode("manual")}
+                 className="text-[10px] tracking-widest text-muted hover:text-primary uppercase font-bold pt-4 underline underline-offset-4"
+               >
+                 Continue with manual curation instead
+               </button>
             </div>
-          ) : (
+          ) : creationMode === "synthesis" ? (
             <>
               <div className="flex items-center gap-4">
                 <span className="text-[10px] tracking-widest text-primary font-bold">01</span>
@@ -209,6 +241,38 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
                 </Button>
               </div>
             </>
+          ) : (
+            <div className="space-y-12 animate-in fade-in slide-in-from-right duration-500">
+               <div className="max-w-md mx-auto space-y-10 text-center">
+                  <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto">
+                    <Plus size={32} className="text-secondary" />
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-serif font-black uppercase tracking-tighter text-primary">Manual Curation</h3>
+                    <p className="text-sm text-secondary font-serif italic leading-relaxed">
+                      Build your monograph brick by brick. Ideal for meticulously planned archives 
+                      and personal storytelling.
+                    </p>
+                  </div>
+                  <InputField
+                    icon={BookOpen}
+                    label="Monograph Title"
+                    placeholder="THE ARCHIVE"
+                    value={bookTitle}
+                    onChange={(e) => setBookTitle(e.target.value)}
+                  />
+               </div>
+               <div className="flex justify-end pt-8 border-t border-border/50">
+                  <Button
+                    onClick={handleManualStart}
+                    disabled={!bookTitle}
+                    className="flex items-center gap-4"
+                  >
+                    <span className="text-xs tracking-[0.2em] font-black">INITIALIZE WORKSPACE</span>
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
+            </div>
           )}
         </div>
       )}

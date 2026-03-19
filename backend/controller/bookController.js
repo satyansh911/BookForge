@@ -151,6 +151,107 @@ const uploadPdf = async (req, res) => {
     }
 };
 
+const updateBookProgress = async (req, res) => {
+    try {
+        const { lastChapterIndex, lastPageIndex } = req.body;
+        const book = await Book.findById(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        if (book.userId.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to update this book' });
+        }
+
+        book.lastChapterIndex = lastChapterIndex;
+        book.lastPageIndex = lastPageIndex;
+        
+        const updatedBook = await book.save();
+        res.status(200).json(updatedBook);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const addAnnotation = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+        if (book.userId.toString() !== req.user._id.toString()) return res.status(401).json({ message: 'Unauthorized' });
+
+        book.annotations.push(req.body);
+        await book.save();
+        res.status(201).json(book.annotations[book.annotations.length - 1]);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const deleteAnnotation = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+        if (book.userId.toString() !== req.user._id.toString()) return res.status(401).json({ message: 'Unauthorized' });
+
+        book.annotations = book.annotations.filter(ann => ann._id.toString() !== req.params.annotationId);
+        await book.save();
+        res.status(200).json({ message: 'Annotation deleted' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const getRelatedBooks = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+
+        const axios = require('axios');
+        // Search Google Books for related titles based on the current book's title
+        const query = encodeURIComponent(book.title);
+        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
+        
+        const related = response.data.items?.map(item => ({
+            id: item.id,
+            title: item.volumeInfo.title,
+            authors: item.volumeInfo.authors,
+            thumbnail: item.volumeInfo.imageLinks?.thumbnail,
+            description: item.volumeInfo.description,
+            previewLink: item.volumeInfo.previewLink
+        })) || [];
+
+        res.status(200).json(related);
+    } catch (error) {
+        console.error("Related Books Error:", error);
+        res.status(500).json({ message: 'Failed to fetch related books' });
+    }
+};
+
+const getBookDeals = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+
+        const axios = require('axios');
+        const query = encodeURIComponent(book.title + " " + book.author);
+        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=3`);
+        
+        const deals = response.data.items?.map(item => ({
+            id: item.id,
+            title: item.volumeInfo.title,
+            buyLink: item.saleInfo?.buyLink,
+            price: item.saleInfo?.listPrice ? `${item.saleInfo.listPrice.amount} ${item.saleInfo.listPrice.currencyCode}` : "Price Varies",
+            isEbook: item.saleInfo?.isEbook,
+            publisher: item.volumeInfo.publisher
+        })).filter(d => d.buyLink) || [];
+
+        res.status(200).json(deals);
+    } catch (error) {
+        console.error("Book Deals Error:", error);
+        res.status(500).json({ message: 'Failed to fetch deals' });
+    }
+};
+
 module.exports = {
     createBook,
     getBooks,
@@ -158,5 +259,10 @@ module.exports = {
     updateBook,
     deleteBook,
     updateBookCover,
-    uploadPdf
+    uploadPdf,
+    updateBookProgress,
+    addAnnotation,
+    deleteAnnotation,
+    getRelatedBooks,
+    getBookDeals
 };

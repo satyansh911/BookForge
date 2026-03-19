@@ -1,22 +1,77 @@
-import {BookOpen, ChevronLeft} from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { BookOpen, ChevronLeft, Library, Sparkles, Wand2, ShoppingCart, Quote, Trash2 } from "lucide-react"
+import toast from "react-hot-toast"
+import axiosInstance from "../../utils/axiosInstance"
+import { API_PATHS } from "../../utils/apiPaths"
 
 const ViewChapterSidebar = ({
   book,
   selectedChapterIndex,
   onSelectChapter,
+  onDeleteAnnotation,
   isOpen,
   onClose,
 }) => {
+  const [relatedBooks, setRelatedBooks] = useState([]);
+  const [bookDeals, setBookDeals] = useState([]);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false);
+  const [isLoadingDeals, setIsLoadingDeals] = useState(false);
+  const [continuation, setContinuation] = useState("");
+  const [isContinuing, setIsContinuing] = useState(false);
+
+  const savedQuotes = book.annotations?.filter(ann => ann.type === 'quote') || [];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!book?._id) return;
+      setIsLoadingRelated(true);
+      setIsLoadingDeals(true);
+      try {
+        const [relatedRes, dealsRes] = await Promise.all([
+          axiosInstance.get(`${API_PATHS.BOOKS.GET_BOOK_BY_ID}/related/${book._id}`),
+          axiosInstance.get(`${API_PATHS.BOOKS.GET_BOOK_BY_ID}/deals/${book._id}`)
+        ]);
+        setRelatedBooks(relatedRes.data);
+        setBookDeals(dealsRes.data);
+      } catch (error) {
+        console.error("Failed to fetch sidebar data");
+      } finally {
+        setIsLoadingRelated(false);
+        setIsLoadingDeals(false);
+      }
+    };
+    fetchData();
+  }, [book._id]);
+
+  const handleContinue = async () => {
+    setIsContinuing(true);
+    const loadingToast = toast.loading("Synthesizing future paths...");
+    try {
+      const response = await axiosInstance.post(API_PATHS.AI.CONTINUE, {
+        title: book.title,
+        summary: book.subtitle || "A synthesized monograph.",
+        currentChapters: book.chapters
+      });
+      setContinuation(response.data.continuation);
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error("The saga is currently locked.");
+    } finally {
+      setIsContinuing(false);
+    }
+  };
+
   return (
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20  backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
       <div className={`
-      fixed lg:relative left-0 top-0 h-full w-80 bg-surface border-r border-black/5 transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      fixed lg:relative left-0 top-0 h-full w-80 bg-surface border-r border-black/5 transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         <div className="p-6 border-b border-black/5">
           <div className="flex items-center justify-between">
@@ -32,29 +87,176 @@ const ViewChapterSidebar = ({
             </button>
           </div>
         </div>
-        <div className="overflow-y-auto h-full pb-20">
-          {book.chapters.map((chapter, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                onSelectChapter(index);
-                onClose();
-              }}
-              className={`
-                w-full text-left p-4 hover:bg-black/5 transition-colors border-b border-black/5 last:border-b-0
-                ${selectedChapterIndex === index ? 'bg-black/5 border-l-4 border-l-accent' : ''}
-              `}
-            >
-              <div className={`font-serif font-bold text-sm truncate uppercase tracking-tight ${
-                 selectedChapterIndex === index ? 'text-primary' : 'text-secondary'
-              }`}>
-                {chapter.title}
-              </div>
-              <div className="text-[10px] text-muted mt-1 uppercase tracking-widest">
-                Segment {index + 1}
-              </div>
-            </button>
-          ))}
+        
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="border-b border-black/5">
+            {book.chapters.map((chapter, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  onSelectChapter(index);
+                  onClose();
+                }}
+                className={`
+                  w-full text-left p-4 hover:bg-black/5 transition-colors border-b border-black/5 last:border-b-0
+                  ${selectedChapterIndex === index ? 'bg-black/5 border-l-4 border-l-accent text-primary' : 'text-secondary'}
+                `}
+              >
+                <div className="font-serif font-bold text-sm truncate uppercase tracking-tight">
+                  {chapter.title}
+                </div>
+                <div className="text-[10px] text-muted mt-1 uppercase tracking-widest">
+                  Segment {index + 1}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Saga Expansion Section */}
+          <div className="p-6 border-b border-black/5 space-y-6 bg-accent/5">
+             <div className="flex items-center gap-3 opacity-80">
+                <Sparkles size={14} className="text-accent" />
+                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-accent">Saga Expansion</span>
+             </div>
+             
+             {continuation ? (
+               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div className="p-4 bg-white border border-accent/20 rounded text-[11px] font-serif leading-relaxed text-primary max-h-64 overflow-y-auto custom-scrollbar italic whitespace-pre-wrap">
+                    {continuation}
+                  </div>
+                  <button 
+                    onClick={() => setContinuation("")}
+                    className="text-[9px] font-bold tracking-widest text-muted hover:text-accent uppercase transition-colors"
+                  >
+                    Clear Synthesis
+                  </button>
+               </div>
+             ) : (
+               <div className="space-y-4">
+                 <p className="text-[10px] text-secondary font-serif italic leading-relaxed">
+                   The narrative doesn't have to end here. Invoke infinite intelligence to project what happens next.
+                 </p>
+                 <button
+                    onClick={handleContinue}
+                    disabled={isContinuing}
+                    className="w-full py-3 bg-accent text-white text-[9px] font-black tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:bg-black transition-all"
+                 >
+                    <Wand2 size={12} />
+                    {isContinuing ? 'SYNTHESIZING...' : 'CONTINUE THE SAGA'}
+                 </button>
+               </div>
+             )}
+          </div>
+
+          {/* Saved Excerpts Section */}
+          <div className="p-6 border-b border-black/5 space-y-6">
+             <div className="flex items-center gap-3 opacity-50">
+                <Quote size={14} className="text-primary" />
+                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-primary">Saved Excerpts</span>
+             </div>
+             
+             <div className="space-y-4">
+               {savedQuotes.length > 0 ? (
+                 savedQuotes.map((quote) => (
+                   <div key={quote._id} className="group relative p-4 bg-surface border border-black/5 hover:border-accent/20 transition-all">
+                      <p className="text-[11px] font-serif italic text-primary leading-relaxed line-clamp-3">
+                        "{quote.text}"
+                      </p>
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[8px] text-muted uppercase tracking-tighter">Chapter {quote.chapterIndex + 1}</span>
+                         <button 
+                           onClick={() => onDeleteAnnotation(quote._id)}
+                           className="text-muted hover:text-red-500 transition-colors"
+                         >
+                           <Trash2 size={12} />
+                         </button>
+                      </div>
+                   </div>
+                 ))
+               ) : (
+                 <p className="text-[10px] text-muted italic">No archives preserved yet.</p>
+               )}
+             </div>
+          </div>
+
+          {/* Related Volumes Section */}
+          <div className="p-6 border-b border-black/5 space-y-8">
+             <div className="flex items-center gap-3 opacity-50">
+                <Library className="w-4 h-4"/>
+                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-primary">Related Volumes</span>
+             </div>
+
+             {isLoadingRelated ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => <div key={i} className="h-16 bg-black/5 animate-pulse rounded" />)}
+                </div>
+             ) : (
+                <div className="space-y-6">
+                  {relatedBooks.map((rel) => (
+                    <a 
+                      key={rel.id} 
+                      href={rel.previewLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex gap-4 group p-2 rounded-lg hover:bg-black/5 transition-all"
+                    >
+                      <div className="w-12 h-16 bg-surface-dark border border-black/5 overflow-hidden flex-shrink-0">
+                        {rel.thumbnail ? (
+                           <img src={rel.thumbnail} alt={rel.title} className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                        ) : (
+                           <div className="w-full h-full flex items-center justify-center text-[8px] text-muted">N/A</div>
+                        )}
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0">
+                        <h4 className="text-[11px] font-serif font-black text-primary uppercase truncate leading-tight group-hover:text-accent transition-colors">
+                          {rel.title}
+                        </h4>
+                        <p className="text-[9px] text-muted uppercase tracking-tighter truncate mt-1">
+                          {rel.authors?.join(', ')}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+             )}
+          </div>
+
+          {/* Marketplace Section */}
+          <div className="p-6 space-y-8 pb-32">
+             <div className="flex items-center gap-3 opacity-50">
+                <ShoppingCart className="w-4 h-4"/>
+                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-primary">Marketplace</span>
+             </div>
+
+             {isLoadingDeals ? (
+                <div className="h-24 bg-black/5 animate-pulse rounded" />
+             ) : (
+                <div className="space-y-4">
+                  {bookDeals.map((deal) => (
+                    <a 
+                      key={deal.id} 
+                      href={deal.buyLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block p-4 border border-black/5 hover:border-accent/40 bg-black/5 hover:bg-black/10 transition-all group"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[8px] font-black tracking-widest text-accent uppercase">
+                          {deal.isEbook ? 'Digital Edition' : 'Physical Edition'}
+                        </span>
+                        <span className="text-[10px] font-bold text-primary">{deal.price}</span>
+                      </div>
+                      <h5 className="text-[10px] font-serif font-bold text-primary truncate group-hover:text-accent">
+                        {deal.publisher || 'Acquire Monograph'}
+                      </h5>
+                    </a>
+                  ))}
+                  {bookDeals.length === 0 && (
+                    <p className="text-[10px] italic text-muted text-center">No secondary markets identified.</p>
+                  )}
+                </div>
+             )}
+          </div>
         </div>
       </div>
     </>

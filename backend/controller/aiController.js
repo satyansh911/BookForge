@@ -40,12 +40,10 @@ const generateOutline = async (req, res) => {
         
         Generate the outline now:
         `;
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
-            contents: prompt,
-        });
-
-        const text = response.text;
+        const modelName = 'gemini-1.5-flash';
+        const model = ai.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
 
         const startIndex = text.indexOf('[');
         const endIndex = text.lastIndexOf(']');
@@ -98,19 +96,125 @@ const generateChapterContent = async (req, res) => {
 
         Begin writing the chapter content now:`;
         
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-lite',
-            contents: prompt,
-        });
-
-        res.status(200).json({ content: response.text });
+        const modelName = 'gemini-1.5-flash';
+        const model = ai.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        res.status(200).json({ content: result.response.text() });
     } catch (error) {
         console.error("Error generating chapter content:", error);
         res.status(500).json({ message: 'Server error during AI chapter content generation' });
     }
 };
 
+const getWordDefinition = async (req, res) => {
+    try {
+        const { text, context } = req.body;
+        if (!text) {
+            return res.status(400).json({ message: 'Please provide text to define' });
+        }
+
+        const prompt = `You are a linguistic expert and dictionary. Provide a concise, clear definition for the following word or phrase. 
+        If context is provided, ensure the definition matches the usage in that context.
+        
+        Word/Phrase: "${text}"
+        ${context ? `Context from book: "...${context}..."` : ''}
+        
+        Requirements:
+        1. Keep it brief (under 50 words).
+        2. Provide the part of speech if applicable.
+        3. Include one example sentence of correct usage.
+        4. If it's a fictional term, infer meaning from context.
+
+        Output: Just the definition, part of speech, and example. No extra conversational text.`;
+
+        const modelName = 'gemini-2.0-flash-exp';
+        const model = ai.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        res.status(200).json({ definition: result.response.text() });
+    } catch (error) {
+        console.error("Error fetching word definition:", error);
+        res.status(500).json({ message: 'Failed to fetch definition.' });
+    }
+};
+
+const continueStory = async (req, res) => {
+    try {
+        const { title, summary, currentChapters } = req.body;
+        if (!title) {
+            return res.status(400).json({ message: 'Please provide a title to continue' });
+        }
+
+        const prompt = `You are a creative story architect. Based on the following monograph, synthesize a compelling "Next Volume" or "Saga Continuation" outline.
+        
+        Title: "${title}"
+        Summary: ${summary || "An archived masterpiece."}
+        Existing Segments: ${currentChapters?.map(c => c.title).join(', ')}
+
+        Requirements:
+        1. Propose a new Volume Title.
+        2. Provide a 3-paragraph "Future Path" or premise for the continuation.
+        3. Suggest 3 new chapter titles with brief hooks.
+        4. Maintain the thematic integrity of the original work.
+
+        Output: Format the response in a structured, readable way.`;
+
+        const modelName = 'gemini-1.5-flash';
+        const model = ai.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        res.status(200).json({ continuation: result.response.text() });
+    } catch (error) {
+        console.error("Error continuing story:", error);
+        res.status(500).json({ message: 'Failed to synthesize continuation.' });
+    }
+};
+
+const speakText = async (req, res) => {
+    try {
+        const { text, voiceId } = req.body;
+        if (!text) {
+            return res.status(400).json({ message: 'Please provide text to synthesize' });
+        }
+
+        const axios = require('axios');
+        const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
+        
+        if (!ELEVEN_LABS_API_KEY || ELEVEN_LABS_API_KEY === 'YOUR_ELEVEN_LABS_API_KEY_HERE') {
+            return res.status(400).json({ message: 'Eleven Labs API Key is missing. Please add it to your .env file.' });
+        }
+
+        const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel - a versatile voice
+
+        const response = await axios({
+            method: 'post',
+            url: `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || DEFAULT_VOICE_ID}`,
+            data: {
+                text,
+                model_id: "eleven_monolingual_v1",
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.5
+                }
+            },
+            headers: {
+                'Accept': 'audio/mpeg',
+                'xi-api-key': ELEVEN_LABS_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            responseType: 'arraybuffer'
+        });
+
+        res.set('Content-Type', 'audio/mpeg');
+        res.send(response.data);
+    } catch (error) {
+        console.error("Eleven Labs Error:", error.response?.data || error.message);
+        res.status(500).json({ message: 'Failed to synthesize speech.' });
+    }
+};
+
 module.exports = {
     generateOutline,
     generateChapterContent,
+    getWordDefinition,
+    continueStory,
+    speakText
 };

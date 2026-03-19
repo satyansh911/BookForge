@@ -17,6 +17,9 @@ export const API_PATHS = {
     AI: {
         GENERATE_OUTLINE: "/api/ai/generate-outline",
         GENERATE_CHAPTER_CONTENT: "/api/ai/generate-chapter-content",
+        DEFINE: "/api/ai/define",
+        SPEAK: "/api/ai/speak",
+        CONTINUE: "/api/ai/continue",
     },
     EXPORT: {
         PDF: "/api/export",
