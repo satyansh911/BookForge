@@ -19,12 +19,14 @@ const allowedOrigins = (
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const vercelOriginRegex = /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/;
+
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow tools and server-to-server requests without an Origin header.
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || vercelOriginRegex.test(origin)) {
       return callback(null, true);
     }
 
