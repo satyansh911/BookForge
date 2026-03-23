@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Menu, X as CloseIcon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,20 @@ const Navbar = () => {
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = React.useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
 
   const navLinks = user 
     ? [
@@ -81,7 +95,7 @@ const Navbar = () => {
               </Link>
               <Link 
                 to="/signup" 
-                className="px-6 py-2 bg-primary text-white text-xs font-sans tracking-[0.2em] hover:bg-accent transition-colors"
+                className="px-6 py-2 bg-primary text-background text-xs font-sans tracking-[0.2em] hover:bg-accent transition-colors"
               >
                 SIGN UP
               </Link>
@@ -98,55 +112,66 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="fixed inset-0 top-[73px] bg-background z-40 md:hidden animate-in slide-in-from-top duration-300">
-          <div className="flex flex-col p-8 space-y-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={toggleMenu}
-                className={`text-lg font-serif tracking-[0.1em] transition-colors hover:text-accent border-b border-border pb-4 ${
-                  location.pathname === link.path ? 'text-primary font-black italic' : 'text-secondary'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+        <div 
+          ref={menuRef}
+          className="absolute top-full left-0 w-full bg-background/95 backdrop-blur-xl z-[100] md:hidden border-b border-border shadow-2xl animate-in slide-in-from-top duration-500 ease-out max-h-[85vh] overflow-y-auto"
+        >
+          <div className="flex flex-col p-8 space-y-10">
+            <div className="space-y-6">
+              <p className="text-[9px] tracking-[0.4em] text-muted uppercase font-bold">Menu</p>
+              <div className="flex flex-col space-y-4">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={toggleMenu}
+                    className={`text-3xl font-serif font-black tracking-tighter transition-all hover:translate-x-2 flex items-center gap-4 ${
+                      location.pathname === link.path ? 'text-primary italic' : 'text-secondary opacity-60'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
             
-            <div className="pt-8 space-y-6">
+            <div className="space-y-6 pt-6 border-t border-border/50">
               {user ? (
-                <>
-                  <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 bg-surface border border-border flex items-center justify-center text-sm font-bold text-muted">
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center gap-4 p-4 bg-surface/50 border border-border/50">
+                     <div className="w-10 h-10 bg-primary flex items-center justify-center text-white text-base font-bold">
                         {user.name?.charAt(0).toUpperCase()}
                      </div>
-                     <span className="text-sm tracking-widest text-muted uppercase font-bold">{user.name}</span>
+                     <div className="flex flex-col">
+                        <span className="text-xs tracking-widest text-muted uppercase font-bold">{user.name}</span>
+                        <span className="text-[9px] text-muted/60 lowercase italic line-clamp-1">{user.email || 'Member'}</span>
+                     </div>
                   </div>
                   <button 
                     onClick={() => {
                         logout();
                         toggleMenu();
                     }}
-                    className="w-full py-4 border border-border text-xs font-sans tracking-[0.2em] hover:bg-surface transition-colors"
+                    className="w-full py-4 bg-primary text-background text-[9px] font-sans tracking-[0.3em] font-bold hover:bg-accent transition-colors"
                   >
                     LOGOUT
                   </button>
-                </>
+                </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                    <Link 
                      to="/login" 
                      onClick={toggleMenu}
-                     className="py-4 border border-border text-center text-xs font-sans tracking-[0.2em]"
+                     className="py-4 border border-border text-center text-[9px] font-sans tracking-[0.3em] font-bold"
                    >
                      LOGIN
                    </Link>
                    <Link 
                      to="/signup" 
                      onClick={toggleMenu}
-                     className="py-4 bg-primary text-white text-center text-xs font-sans tracking-[0.2em]"
+                     className="py-4 bg-primary text-background text-center text-[9px] font-sans tracking-[0.3em] font-bold"
                    >
                      SIGN UP
                    </Link>

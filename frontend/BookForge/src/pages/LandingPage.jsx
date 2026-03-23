@@ -1,19 +1,24 @@
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import BookCard from '../components/ui/BookCard';
 import Reveal from '../components/ui/Reveal';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
+import typographyImg from '../assets/bookimgs/typography.png';
+import gridSystemsImg from '../assets/bookimgs/gridsystems.png';
+import artOfColorImg from '../assets/bookimgs/theartofcolor.jpg';
 
 const LandingPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
   const featuredBooks = [
-    { title: "Typography: A Manual of Design", author: "Emil Ruder", year: "1967", category: "PRACTICE", image: null },
-    { title: "Grid Systems", author: "Josef Müller-Brockmann", year: "1981", category: "DESIGN", image: null },
-    { title: "The Art of Color", author: "Johannes Itten", year: "1961", category: "INSPIRE", image: null },
+    { title: "Typography: A Manual of Design", author: "Emil Ruder", year: "1967", category: "PRACTICE", image: typographyImg },
+    { title: "Grid Systems", author: "Josef Müller-Brockmann", year: "1981", category: "DESIGN", image: gridSystemsImg },
+    { title: "The Art of Color", author: "Johannes Itten", year: "1961", category: "INSPIRE", image: artOfColorImg },
   ];
 
   return (
@@ -60,7 +65,23 @@ const LandingPage = () => {
         
         <Reveal direction="up" delay={0.2} stagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16">
           {featuredBooks.map((book, i) => (
-            <BookCard key={i} book={book} />
+            <BookCard 
+              key={i} 
+              book={book} 
+              onClick={() => {
+                // Navigate to a search-based or static route for the book
+                // In this implementation, we'll try to use a static ID or slug
+                const SLUGS = {
+                  "Typography: A Manual of Design": "typography-manual",
+                  "Grid Systems": "grid-systems",
+                  "The Art of Color": "art-of-color"
+                };
+                toast.success(`Opening ${book.title}...`);
+                // For demonstration, these can be unique IDs once seeded
+                // We'll use a specific ID if we have it, or a generic detail page
+                navigate(`/book/${SLUGS[book.title] || 'featured'}`);
+              }}
+            />
           ))}
         </Reveal>
       </section>

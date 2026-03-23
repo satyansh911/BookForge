@@ -1,8 +1,58 @@
-const {GoogleGenAI} = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-});
+// Startup Diagnostic: List available models immediately
+(async () => {
+    try {
+        const axios = require('axios');
+        console.log("--- STARTUP AI DIAGNOSTIC ---");
+        const res = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+        console.log("Models identified:", res.data.models?.map(m => m.name.split('/').pop()).join(', '));
+        console.log("-----------------------------");
+    } catch (e) {
+        console.error("Startup AI Diagnostic Failed:", e.response?.data?.error?.message || e.message);
+    }
+})();
+
+/**
+ * Helper to get a working model with fallback
+ */
+async function getRobustModel(ai, prompt) {
+    const attempts = [
+        { model: 'gemini-2.0-flash', apiVersion: 'v1beta' },
+        { model: 'gemini-2.5-flash', apiVersion: 'v1beta' },
+        { model: 'gemini-1.5-flash', apiVersion: 'v1' },
+        { model: 'gemini-1.5-flash', apiVersion: 'v1beta' },
+        { model: 'gemini-pro', apiVersion: 'v1' },
+        { model: 'gemini-flash-latest', apiVersion: 'v1beta' }
+    ];
+
+    let lastError = null;
+    for (const attempt of attempts) {
+        try {
+            const model = ai.getGenerativeModel({ model: attempt.model }, { apiVersion: attempt.apiVersion });
+            const result = await model.generateContent(prompt);
+            return result; // Success!
+        } catch (error) {
+            console.error(`Attempt failed: ${attempt.model} on ${attempt.apiVersion} - Status: ${error.status || error.response?.status}`);
+            lastError = error;
+            
+            // If we get a 404, let's try to list ANY available models to the console
+            if (error.status === 404 || error.message.includes('404')) {
+                const axios = require('axios');
+                try {
+                    const v = attempt.apiVersion || 'v1beta';
+                    console.log(`Self-Diagnostic: Fetching available models for ${v}...`);
+                    const res = await axios.get(`https://generativelanguage.googleapis.com/${v}/models?key=${process.env.GEMINI_API_KEY}`);
+                    console.log(`Available Models for account [${v}]:`, res.data.models?.map(m => m.name).join(', ') || 'NONE');
+                } catch (listErr) {
+                    console.error("Self-Diagnostic Listing Failed:", listErr.message);
+                }
+            }
+        }
+    }
+    throw lastError;
+}
 
 const generateOutline = async (req, res) => {
     try {
@@ -40,9 +90,7 @@ const generateOutline = async (req, res) => {
         
         Generate the outline now:
         `;
-        const modelName = 'gemini-1.5-flash';
-        const model = ai.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        const result = await getRobustModel(ai, prompt);
         const text = result.response.text();
 
         const startIndex = text.indexOf('[');
@@ -96,9 +144,7 @@ const generateChapterContent = async (req, res) => {
 
         Begin writing the chapter content now:`;
         
-        const modelName = 'gemini-1.5-flash';
-        const model = ai.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        const result = await getRobustModel(ai, prompt);
         res.status(200).json({ content: result.response.text() });
     } catch (error) {
         console.error("Error generating chapter content:", error);
@@ -127,13 +173,18 @@ const getWordDefinition = async (req, res) => {
 
         Output: Just the definition, part of speech, and example. No extra conversational text.`;
 
-        const modelName = 'gemini-2.0-flash-exp';
-        const model = ai.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        console.log("Lexicon Request:", { text, context });
+        const result = await getRobustModel(ai, prompt);
         res.status(200).json({ definition: result.response.text() });
     } catch (error) {
-        console.error("Error fetching word definition:", error);
-        res.status(500).json({ message: 'Failed to fetch definition.' });
+        console.error("GENIMI ERROR IN getWordDefinition:", error.message);
+        if (error.response) {
+            console.error("Full Error Response:", error.response.data);
+        }
+        res.status(500).json({ 
+            message: 'Failed to fetch definition.',
+            error: error.message
+        });
     }
 };
 
@@ -158,9 +209,7 @@ const continueStory = async (req, res) => {
 
         Output: Format the response in a structured, readable way.`;
 
-        const modelName = 'gemini-1.5-flash';
-        const model = ai.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        const result = await getRobustModel(ai, prompt);
         res.status(200).json({ continuation: result.response.text() });
     } catch (error) {
         console.error("Error continuing story:", error);

@@ -183,12 +183,12 @@ const EditorPage = () => {
   }
 
   return (
-    <div className="flex bg-white font-sans relative min-h-screen">
+    <div className="flex bg-background font-sans relative min-h-screen">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-[80] md:hidden">
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-          <div className="relative w-80 h-full bg-white border-r border-border animate-in slide-in-from-left duration-300">
+          <div className="relative w-80 h-full bg-surface border-r border-border animate-in slide-in-from-left duration-300">
             <ChapterSidebar
               book={book}
               selectedChapterIndex={selectedChapterIndex}
@@ -219,7 +219,7 @@ const EditorPage = () => {
 
       <main className="flex-1 flex flex-col">
         {/* Editor Top Bar */}
-        <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-border p-4 flex justify-between items-center">
+        <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border p-4 flex justify-between items-center">
           <div className="flex items-center gap-6">
             <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-primary hover:text-accent">
               <Menu size={24} />
@@ -277,7 +277,7 @@ const EditorPage = () => {
         </header>
 
         {/* Tab Content */}
-        <div className="flex-1 min-h-0 bg-white">
+        <div className="flex-1 min-h-0 bg-background">
           {activeTab === "editor" ? (
             <ChapterEditorTab
               book={book}

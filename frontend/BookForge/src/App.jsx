@@ -13,6 +13,7 @@ import ViewBookPage from './pages/ViewBookPage'
 import ProfilePage from './pages/ProfilePage'
 import PricingPage from './pages/PricingPage'
 import ExplorePage from './pages/ExplorePage'
+import BookDetailsPage from './pages/BookDetailsPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { useAuth } from './context/AuthContext'
 import DashboardLayout from './components/layout/DashboardLayout'
@@ -32,7 +33,7 @@ const App = () => {
   return (
     <>
       <Routes>
-        <Route path="/view-book/:bookId" element={<ProtectedRoute><ViewBookPage/></ProtectedRoute>} />
+        <Route path="/view-book/:bookId" element={<ViewBookPage/>} />
       </Routes>
       <Layout>
         <Routes>
@@ -44,6 +45,7 @@ const App = () => {
           <Route path="/profile" element={<ProtectedRoute><ProfilePage/></ProtectedRoute>} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/book/:bookId" element={<BookDetailsPage />} />
         </Routes>
       </Layout>
     </>

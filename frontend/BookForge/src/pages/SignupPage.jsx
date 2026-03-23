@@ -36,7 +36,7 @@ const SignupPage = () => {
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-20 items-center">
         {/* Left Side: Context (Order reversed on mobile handled by grid) */}
-        <Reveal direction="left" className="bg-white border border-border p-12 md:p-20 shadow-2xl relative order-2 lg:order-1">
+        <Reveal direction="left" className="bg-background border border-border p-12 md:p-20 shadow-2xl relative order-2 lg:order-1">
           <div className="absolute top-0 left-0 w-12 h-12 bg-accent/10 border-r border-b border-border" />
           
           <div className="mb-12">

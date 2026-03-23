@@ -89,7 +89,7 @@ const DashboardPage = () => {
               <p className="text-[9px] md:text-[10px] tracking-[0.4em] md:tracking-[0.5em] text-muted uppercase font-bold tabular-nums">
                 Workspace / {new Date().getFullYear()} / Version 3.0
               </p>
-              <h1 className="text-4xl sm:text-6xl md:text-8xl font-serif font-black leading-[0.85] tracking-tighter uppercase">
+              <h1 className="text-3xl sm:text-6xl md:text-8xl font-serif font-black leading-[0.9] tracking-tighter uppercase whitespace-pre-wrap">
                 {getGreeting()}, <br />
                 <span className="text-secondary italic">{user?.name}.</span>
               </h1>
@@ -98,21 +98,21 @@ const DashboardPage = () => {
               Welcome back to your curated selection of manuscripts and archived inspirations. 
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto self-start lg:self-end">
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto self-start lg:self-end mt-4">
             <Button
               variant="outline"
               onClick={() => setIsPdfModalOpen(true)}
-              className="flex items-center justify-center sm:justify-start gap-4 md:gap-6 py-4 md:py-5 px-8 md:px-12 group w-full sm:w-auto"
+              className="flex items-center justify-center sm:justify-start gap-3 md:gap-6 py-4 md:py-5 px-6 md:px-12 group w-full sm:w-auto"
             >
-              <Plus size={18} className="text-accent" />
-              <span className="text-xs md:text-sm tracking-widest font-bold">UPLOAD PDF</span>
+              <Plus size={16} className="text-accent" />
+              <span className="text-[10px] md:text-sm tracking-[0.2em] font-bold">UPLOAD PDF</span>
             </Button>
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center justify-center sm:justify-start gap-4 md:gap-6 py-4 md:py-5 px-8 md:px-12 group w-full sm:w-auto"
+              className="flex items-center justify-center sm:justify-start gap-3 md:gap-6 py-4 md:py-5 px-6 md:px-12 group w-full sm:w-auto"
             >
-              <Plus size={18} className="group-hover:rotate-90 transition-transform duration-500" />
-              <span className="text-xs md:text-sm tracking-widest font-bold">START PROJECT</span>
+              <Plus size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+              <span className="text-[10px] md:text-sm tracking-[0.2em] font-bold">START PROJECT</span>
             </Button>
           </div>
         </header>
@@ -182,7 +182,7 @@ const DashboardPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {allQuotes.map((quote, i) => (
                   <Reveal key={quote._id} direction="up" delay={0.1 * (i % 3)}>
-                    <div className="group relative p-10 bg-white border border-border hover:border-accent transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col justify-between h-full min-h-[280px]">
+                    <div className="group relative p-10 bg-surface/30 border border-border hover:border-accent transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col justify-between h-full min-h-[280px]">
                        <div className="space-y-6">
                          <Quote className="text-accent/20 group-hover:text-accent transition-colors" size={32} />
                          <p className="text-xl font-serif italic text-primary leading-relaxed line-clamp-6">

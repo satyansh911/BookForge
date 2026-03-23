@@ -63,7 +63,7 @@ const ExplorePage = () => {
                       placeholder="SEARCH BY TITLE, AUTHOR, OR SUBJECT..."
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      className="bg-white"
+                      className="bg-transparent"
                     />
                  </div>
                  <Button type="submit" disabled={isSearching} className="px-12">
@@ -119,7 +119,7 @@ const ExplorePage = () => {
                            PREVIEW
                          </Button>
                          <Button 
-                           className="flex-1 py-3 text-[9px] tracking-[0.2em] font-bold bg-black text-white"
+                           className="flex-1 py-3 text-[9px] tracking-[0.2em] font-bold"
                            onClick={() => toast.success("Feature coming soon: Ingest into Synthesis")}
                          >
                            INGEST

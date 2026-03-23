@@ -1,0 +1,1 @@
+Test of write_to_file in public directory.

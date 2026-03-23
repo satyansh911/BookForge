@@ -292,7 +292,7 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
             {chapters.map((chapter, index) => (
               <div
                 key={index}
-                className="group p-8 border border-border hover:border-primary transition-all bg-white relative"
+                className="group p-8 border border-border hover:border-primary transition-all bg-surface/30 relative"
               >
                 <div className="flex items-start gap-6">
                   <span className="font-serif italic text-4xl text-border group-hover:text-accent transition-colors">

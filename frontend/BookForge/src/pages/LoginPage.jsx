@@ -53,7 +53,7 @@ const LoginPage = () => {
         </div>
 
         {/* Right Side: Form */}
-        <Reveal direction="right" className="bg-white border border-border p-12 md:p-20 shadow-2xl relative">
+        <Reveal direction="right" className="bg-background border border-border p-12 md:p-20 shadow-2xl relative">
           <div className="absolute top-0 right-0 w-12 h-12 bg-accent/10 border-l border-b border-border" />
           
           <div className="mb-12">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { BookOpen, ChevronLeft, Library, Sparkles, Wand2, ShoppingCart, Quote, Trash2 } from "lucide-react"
+import { BookOpen, ChevronLeft, Library, Sparkles, Wand2, ShoppingCart, Quote, Trash2, X } from "lucide-react"
 import toast from "react-hot-toast"
 import axiosInstance from "../../utils/axiosInstance"
 import { API_PATHS } from "../../utils/apiPaths"
@@ -11,6 +11,7 @@ const ViewChapterSidebar = ({
   onDeleteAnnotation,
   isOpen,
   onClose,
+  isSampleOnly
 }) => {
   const [relatedBooks, setRelatedBooks] = useState([]);
   const [bookDeals, setBookDeals] = useState([]);
@@ -23,7 +24,7 @@ const ViewChapterSidebar = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!book?._id) return;
+      if (!book?._id || book._id.startsWith('featured')) return;
       setIsLoadingRelated(true);
       setIsLoadingDeals(true);
       try {
@@ -44,6 +45,10 @@ const ViewChapterSidebar = ({
   }, [book._id]);
 
   const handleContinue = async () => {
+    if (isSampleOnly) {
+      toast.error("Authentication required for Saga Expansion.");
+      return;
+    }
     setIsContinuing(true);
     const loadingToast = toast.loading("Synthesizing future paths...");
     try {
@@ -71,19 +76,19 @@ const ViewChapterSidebar = ({
         />
       )}
       <div className={`
-      fixed lg:relative left-0 top-0 h-full w-80 bg-surface border-r border-black/5 transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      fixed lg:relative left-0 top-0 h-full w-80 bg-white/95 backdrop-blur-xl border-r border-black/5 transform transition-transform duration-500 ease-in-out z-50 flex flex-col shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        <div className="p-6 border-b border-black/5">
+        <div className="p-8 border-b border-black/5 bg-black text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <BookOpen className="w-5 h-5 text-accent"/>
-              <span className="font-serif font-black uppercase text-[10px] tracking-[0.3em] text-primary">Chapters</span>
+              <span className="font-serif font-black uppercase text-[11px] tracking-[0.4em]">INDEX Explorer</span>
             </div>
             <button
               onClick={onClose}
-              className="lg:hidden p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 hover:bg-white/10 rounded-full transition-colors"
             >
-              <ChevronLeft className="w-4 h-4"/>
+              <X className="w-4 h-4 text-white"/>
             </button>
           </div>
         </div>
@@ -94,52 +99,57 @@ const ViewChapterSidebar = ({
               <button
                 key={index}
                 onClick={() => {
+                  if (isSampleOnly && index > 0) {
+                    toast.error("Premium subscription required for this chapter.");
+                    return;
+                  }
                   onSelectChapter(index);
                   onClose();
                 }}
                 className={`
-                  w-full text-left p-4 hover:bg-black/5 transition-colors border-b border-black/5 last:border-b-0
-                  ${selectedChapterIndex === index ? 'bg-black/5 border-l-4 border-l-accent text-primary' : 'text-secondary'}
+                  w-full text-left p-6 hover:bg-black group transition-all duration-300 border-b border-black/5 last:border-b-0
+                  ${selectedChapterIndex === index ? 'bg-black text-white' : 'text-primary'}
+                  ${isSampleOnly && index > 0 ? 'opacity-30 grayscale cursor-not-allowed' : ''}
                 `}
               >
-                <div className="font-serif font-bold text-sm truncate uppercase tracking-tight">
-                  {chapter.title}
+                <div className={`font-serif font-black text-sm uppercase tracking-tight group-hover:text-white transition-colors ${selectedChapterIndex === index ? 'text-white' : ''}`}>
+                  0{index + 1} — {chapter.title}
                 </div>
-                <div className="text-[10px] text-muted mt-1 uppercase tracking-widest">
-                  Segment {index + 1}
+                <div className={`text-[9px] font-bold mt-2 uppercase tracking-[0.3em] group-hover:text-accent transition-colors ${selectedChapterIndex === index ? 'text-accent' : 'text-muted'}`}>
+                  Monograph Segment
                 </div>
               </button>
             ))}
           </div>
 
           {/* Saga Expansion Section */}
-          <div className="p-6 border-b border-black/5 space-y-6 bg-accent/5">
-             <div className="flex items-center gap-3 opacity-80">
+          <div className="p-8 border-b border-black/5 space-y-6 bg-black text-white">
+             <div className="flex items-center gap-3">
                 <Sparkles size={14} className="text-accent" />
-                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-accent">Saga Expansion</span>
+                <span className="font-serif font-black uppercase text-[10px] tracking-[0.4em] text-accent">Saga Expansion</span>
              </div>
              
              {continuation ? (
-               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <div className="p-4 bg-white border border-accent/20 rounded text-[11px] font-serif leading-relaxed text-primary max-h-64 overflow-y-auto custom-scrollbar italic whitespace-pre-wrap">
+               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="p-6 bg-white/5 border border-white/10 text-[12px] font-serif leading-relaxed text-white/80 max-h-64 overflow-y-auto custom-scrollbar italic whitespace-pre-wrap">
                     {continuation}
                   </div>
                   <button 
                     onClick={() => setContinuation("")}
-                    className="text-[9px] font-bold tracking-widest text-muted hover:text-accent uppercase transition-colors"
+                    className="w-full h-12 bg-white text-black text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-all"
                   >
-                    Clear Synthesis
+                    Reset Synthesis
                   </button>
                </div>
              ) : (
-               <div className="space-y-4">
-                 <p className="text-[10px] text-secondary font-serif italic leading-relaxed">
-                   The narrative doesn't have to end here. Invoke infinite intelligence to project what happens next.
+               <div className="space-y-6">
+                 <p className="text-[11px] text-white/60 font-serif italic leading-relaxed">
+                   Infinite intelligence projected into the narrative.
                  </p>
                  <button
                     onClick={handleContinue}
                     disabled={isContinuing}
-                    className="w-full py-3 bg-accent text-white text-[9px] font-black tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:bg-black transition-all"
+                    className="w-full py-4 bg-accent text-white text-[10px] font-black tracking-[0.3em] uppercase flex items-center justify-center gap-3 hover:bg-white hover:text-black transition-all"
                  >
                     <Wand2 size={12} />
                     {isContinuing ? 'SYNTHESIZING...' : 'CONTINUE THE SAGA'}

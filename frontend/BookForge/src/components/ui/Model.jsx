@@ -9,7 +9,7 @@ const Model = ({ isOpen, onClose, title, children }) => {
           className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           onClick={onClose}
         ></div>
-        <div className="bg-white border border-border shadow-2xl max-w-2xl w-full p-10 relative text-left animate-in zoom-in-95 fade-in duration-300">
+        <div className="bg-background border border-border shadow-2xl max-w-2xl w-full p-10 relative text-left animate-in zoom-in-95 fade-in duration-300">
           <div className="flex items-center justify-between mb-10 pb-6 border-b border-border/50">
             <div>
               <p className="text-[10px] tracking-[0.4em] text-muted mb-2 uppercase">Action / Request</p>

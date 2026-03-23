@@ -65,6 +65,29 @@ html.dark {
     font-weight: 700;
     line-height: 1.1;
   }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: white;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+  }
 }
 
 /* Custom UI Tweaks */

@@ -32,9 +32,9 @@ const Button = ({ children, variant = 'primary', className = '', isLoading = fal
   const baseStyles = "relative px-8 py-3 text-[11px] font-sans tracking-[0.2em] font-bold transition-colors active:scale-95 disabled:opacity-50 disabled:pointer-events-none uppercase overflow-hidden";
   
   const variants = {
-    primary: "bg-primary text-white hover:bg-accent border border-primary hover:border-accent",
+    primary: "bg-primary text-background hover:bg-accent border border-primary hover:border-accent",
     secondary: "bg-secondary text-white hover:bg-primary border border-secondary hover:border-primary",
-    outline: "border border-border text-primary hover:bg-primary hover:text-white",
+    outline: "border border-border text-primary hover:bg-primary hover:text-background",
     ghost: "text-primary hover:bg-surface border border-transparent",
   };
 
