@@ -25,6 +25,10 @@ const annotationSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    pageIndex: {
+        type: Number,
+        default: 0
+    },
     text: {
         type: String,
         required: true,
@@ -36,6 +40,21 @@ const annotationSchema = new mongoose.Schema({
     color: {
         type: String,
         default: "rgba(173, 71, 51, 0.3)", // Default accent color with opacity
+    }
+}, { timestamps: true });
+
+const bookmarkSchema = new mongoose.Schema({
+    chapterIndex: {
+        type: Number,
+        required: true,
+    },
+    pageIndex: {
+        type: Number,
+        required: true,
+    },
+    label: {
+        type: String,
+        default: "Manual Bookmark"
     }
 }, { timestamps: true });
 
@@ -64,6 +83,7 @@ const bookSchema = new mongoose.Schema(
         },
         chapters: [chapterSchema],
         annotations: [annotationSchema],
+        bookmarks: [bookmarkSchema],
         status: {
             type: String,
             enum: ['draft', 'published'],

@@ -10,10 +10,12 @@ import {
   Quote, 
   Brain, 
   Languages,
-  Volume2,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  Headphones,
+  Bookmark,
+  Trash2
 } from 'lucide-react';
 import toast from "react-hot-toast"
 import axiosInstance from "../../utils/axiosInstance"
@@ -39,12 +41,34 @@ const ViewBook = ({ book, isSampleOnly }) => {
   const [isDefining, setIsDefining] = useState(false);
   const [annotations, setAnnotations] = useState(book.annotations || []);
   const [isTwoPage, setIsTwoPage] = useState(window.innerWidth > 1024);
+  const [wpm, setWpm] = useState(0);
+  const [isDistractionFree, setIsDistractionFree] = useState(false);
+  const [voicePreference, setVoicePreference] = useState('male'); // 'male' or 'female'
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAudiobookMode, setIsAudiobookMode] = useState(false);
+  const [bookmarks, setBookmarks] = useState(book.bookmarks || []);
 
   const containerRef = useRef(null);
   const contentRef = useRef(null);
   const readerRef = useRef(null);
   const menuRef = useRef(null);
   const aiModalRef = useRef(null);
+  const sessionStartTime = useRef(Date.now());
+  const wordsReadCount = useRef(0);
+  const lastTrackedPage = useRef({ chapter: selectedChapterIndex, page: currentPage });
+  const dwellTimer = useRef(null);
+  const currentAudioRef = useRef(null);
+
+  const stopSpeech = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
 
   const saveProgress = async (chapterIdx, pageIdx) => {
     if (!user || book._id.startsWith('featured')) return;
@@ -58,26 +82,125 @@ const ViewBook = ({ book, isSampleOnly }) => {
     }
   };
 
-  const handleSpeak = async (textToSpeak) => {
-    const text = textToSpeak || selectedText;
+  const handleSpeak = async (textToSpeak, isContinuous = false) => {
+    const text = textToSpeak || selectedText || selectedChapter.content;
     if (!text) return;
 
+    if (!isContinuous) stopSpeech(); // Stop any current speech unless we are in transition
     const loadingToast = toast.loading("Synthesizing voice...");
+    
     try {
       const response = await axiosInstance.post(API_PATHS.AI.SPEAK, {
         text,
+        voiceType: voicePreference
       }, { responseType: 'blob' });
       
+      console.log("Audio blob received:", response.data.size, "bytes", "Type:", response.data.type);
+      
+      if (response.data.type === 'application/json') {
+        const jsonText = await response.data.text();
+        try {
+          const err = JSON.parse(jsonText);
+          toast.error(err.message || "Quality synthesis failed.");
+          toast.dismiss(loadingToast);
+          return;
+        } catch (e) {}
+      }
+
+      if (response.data.size < 100) {
+        throw new Error("Received invalid audio data (too small).");
+      }
+
       const audioUrl = URL.createObjectURL(response.data);
-      const audio = new Audio(audioUrl);
-      audio.play();
-      toast.dismiss(loadingToast);
-      toast.success("Synthesized successfully.", { icon: '🎙️' });
+      const audio = new Audio();
+      audio.src = audioUrl;
+      currentAudioRef.current = audio;
+      
+      audio.onplay = () => setIsSpeaking(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        currentAudioRef.current = null;
+        
+        // Audiobook Mode: Move to next chapter if ended
+        if (isAudiobookMode && selectedChapterIndex < book.chapters.length - 1) {
+            const nextIdx = selectedChapterIndex + 1;
+            setSelectedChapterIndex(nextIdx);
+            setCurrentPage(0);
+            // Small delay to allow UI to settle before next synthesis
+            setTimeout(() => {
+                handleSpeak(book.chapters[nextIdx].content, true);
+            }, 1000);
+        } else if (isAudiobookMode) {
+            setIsAudiobookMode(false);
+            toast.success("Monograph concluded.");
+        }
+      };
+
+      audio.oncanplaythrough = () => {
+        audio.play().then(() => {
+          toast.dismiss(loadingToast);
+          toast.success("Synthesized successfully.", { icon: '🎙️' });
+        }).catch(err => {
+          console.error("Playback failed:", err);
+          toast.error("Playback blocked by browser.");
+          toast.dismiss(loadingToast);
+          setIsSpeaking(false);
+        });
+      };
+
+      audio.onerror = (err) => {
+        console.error("Audio element error:", err);
+        toast.error("Failed to load synthesized audio.");
+        toast.dismiss(loadingToast);
+        setIsSpeaking(false);
+      };
+
       setMenuPosition(null);
       window.getSelection().removeAllRanges();
     } catch (error) {
       toast.dismiss(loadingToast);
-      toast.error("Vocal chords are currently offline.");
+      
+      // Fallback to high-quality Browser Speech engine
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        utterance.pitch = voicePreference === 'female' ? 1.2 : 0.9;
+        
+        // Powerful selection: Priority for "Natural" or "Google" voices matching preference
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v => 
+          (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Online')) && 
+          v.lang.startsWith('en') &&
+          (voicePreference === 'female' ? (v.name.includes('Female') || v.name.includes('Zira')) : (v.name.includes('Male') || v.name.includes('David')))
+        ) || voices.find(v => v.lang.startsWith('en'));
+
+        if (preferredVoice) utterance.voice = preferredVoice;
+        
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          if (isAudiobookMode && selectedChapterIndex < book.chapters.length - 1) {
+              const nextIdx = selectedChapterIndex + 1;
+              setSelectedChapterIndex(nextIdx);
+              setCurrentPage(0);
+              setTimeout(() => {
+                  handleSpeak(book.chapters[nextIdx].content, true);
+              }, 1000);
+          } else if (isAudiobookMode) {
+              setIsAudiobookMode(false);
+              toast.success("Monograph concluded.");
+          }
+        };
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+        toast(`Using ${preferredVoice?.name || 'local'} voice engine (Free)`, { icon: '🗣️' });
+        
+        setMenuPosition(null);
+        window.getSelection().removeAllRanges();
+      } else {
+        toast.error("Vocal chords are currently offline.");
+      }
     }
   };
 
@@ -211,6 +334,39 @@ const ViewBook = ({ book, isSampleOnly }) => {
     }
   }, [selectedChapterIndex, currentPage]);
 
+  // Reading Speed (WPM) Tracking (Refined with 3s Dwell Time)
+  useEffect(() => {
+    if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    
+    dwellTimer.current = setTimeout(() => {
+      if (lastTrackedPage.current.chapter !== selectedChapterIndex || lastTrackedPage.current.page !== currentPage) {
+        const text = contentRef.current?.innerText || "";
+        const words = text.trim().split(/\s+/).length;
+        
+        // Only count if there's significant content
+        if (words > 10) {
+          wordsReadCount.current += words;
+          const timeElapsedMin = (Date.now() - sessionStartTime.current) / 60000;
+          if (timeElapsedMin > 0.05) { 
+            setWpm(Math.round(wordsReadCount.current / timeElapsedMin));
+          }
+        }
+        lastTrackedPage.current = { chapter: selectedChapterIndex, page: currentPage };
+      }
+    }, 5000); // 5s dwell time for accuracy
+
+    return () => {
+      if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    };
+  }, [selectedChapterIndex, currentPage]);
+
+  const handleJumpTo = (chapterIdx, pageIdx) => {
+    setSelectedChapterIndex(chapterIdx);
+    setCurrentPage(pageIdx);
+    setIsSidebarOpen(false);
+    toast.success(`Jumping to Chapter ${chapterIdx + 1}, Page ${pageIdx + 1}`, { icon: '📖' });
+  };
+
   const handleSelection = () => {
     const selection = window.getSelection();
     const text = selection.toString().trim();
@@ -307,6 +463,7 @@ const ViewBook = ({ book, isSampleOnly }) => {
       const response = await axiosInstance.post(`${API_PATHS.BOOKS.GET_BOOK_BY_ID}/annotations/${book._id}`, {
         type,
         chapterIndex: selectedChapterIndex,
+        pageIndex: currentPage,
         text: selectedText,
         color: type === 'highlight' ? "rgba(212, 163, 115, 0.35)" : "transparent"
       });
@@ -348,7 +505,7 @@ const ViewBook = ({ book, isSampleOnly }) => {
     return html;
   };
 
-  const progress = ((selectedChapterIndex + 1) / book.chapters.length) * 100;
+  const progress = ((selectedChapterIndex + (currentPage / (totalPages || 1))) / book.chapters.length) * 100;
 
   const handleDeleteAnnotation = async (id) => {
     try {
@@ -357,6 +514,46 @@ const ViewBook = ({ book, isSampleOnly }) => {
       toast.success("Excerpt removed from archive.");
     } catch (error) {
       toast.error("Failed to remove annotation.");
+    }
+  };
+
+  const handleAudiobookToggle = () => {
+    if (!isAudiobookMode) {
+      setIsAudiobookMode(true);
+      handleSpeak(selectedChapter.content, true);
+      toast.success("Audiobook Mode activated.", { icon: '🎧' });
+    } else {
+      setIsAudiobookMode(false);
+      stopSpeech();
+      toast("Audiobook Mode paused.");
+    }
+  };
+
+  const handleAddBookmark = async () => {
+    if (!user) {
+      toast.error("Authentication required to save bookmarks.");
+      return;
+    }
+    try {
+      const response = await axiosInstance.post(`${API_PATHS.BOOKS.GET_BOOK_BY_ID}/bookmarks/${book._id}`, {
+        chapterIndex: selectedChapterIndex,
+        pageIndex: currentPage,
+        label: `Chapter ${selectedChapterIndex + 1}, Page ${currentPage + 1}`
+      });
+      setBookmarks([...bookmarks, response.data]);
+      toast.success("Position preserved in bookmarks.", { icon: '🔖' });
+    } catch (error) {
+      toast.error("Failed to save bookmark.");
+    }
+  };
+
+  const handleDeleteBookmark = async (id) => {
+    try {
+        await axiosInstance.delete(`${API_PATHS.BOOKS.GET_BOOK_BY_ID}/bookmarks/${book._id}/${id}`);
+        setBookmarks(bookmarks.filter(bm => bm._id !== id));
+        toast.success("Bookmark removed.");
+    } catch (error) {
+        toast.error("Failed to remove bookmark.");
     }
   };
 
@@ -373,11 +570,11 @@ const ViewBook = ({ book, isSampleOnly }) => {
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-white/5 transition-colors text-white/50 hover:text-white"
+            className={`p-2 hover:bg-white/5 transition-colors text-white/50 hover:text-white ${isDistractionFree ? 'hidden md:block' : ''}`}
           >
             <Menu size={20} />
           </button>
-          <div>
+          <div className={isDistractionFree ? 'hidden md:block' : ''}>
             <h1 className="text-[10px] uppercase tracking-[0.2em] text-white/80 truncate max-w-[150px] md:max-w-none">
               {book.title}
             </h1>
@@ -388,6 +585,20 @@ const ViewBook = ({ book, isSampleOnly }) => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            onClick={handleAudiobookToggle}
+            className={`p-2 transition-colors ${isAudiobookMode ? 'text-accent' : 'text-white/40 hover:text-white'}`}
+            title="Audiobook Mode (Continuous)"
+          >
+            <Headphones size={20} />
+          </button>
+          <button 
+            onClick={handleAddBookmark}
+            className="p-2 text-white/40 hover:text-white transition-colors"
+            title="Bookmark this position"
+          >
+            <Bookmark size={20} />
+          </button>
           <button 
             onClick={() => setShowSettings(!showSettings)}
             className={`p-2 transition-colors ${showSettings ? 'text-accent' : 'text-white/40 hover:text-white'}`}
@@ -403,17 +614,56 @@ const ViewBook = ({ book, isSampleOnly }) => {
         </div>
       </header>
 
+      {/* Top Progress Info Bar */}
+      <div className={`h-12 bg-black/40 backdrop-blur-md border-b border-white/5 flex items-center px-6 z-50 flex-shrink-0 transition-opacity duration-300 ${isDistractionFree && !showSettings ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+        <div className="flex-1 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black tracking-[0.2em] text-accent uppercase">{Math.round(progress)}% COMPLETE</span>
+              <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden hidden sm:block">
+                <div 
+                  className="h-full bg-accent transition-all duration-500" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            {wpm > 0 && (
+               <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+                 <span className="text-[9px] font-bold tracking-[0.2em] text-white/40 uppercase">Reading Speed:</span>
+                 <span className="text-[9px] font-black tracking-[0.2em] text-white/80 uppercase">{wpm} WPM</span>
+               </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {isSpeaking && (
+              <button 
+                onClick={stopSpeech}
+                className="flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[8px] font-black tracking-[0.2em] border border-red-500/20 transition-all uppercase animate-pulse"
+              >
+                <X size={10} /> STOP SPEECH
+              </button>
+            )}
+            <span className="text-[9px] font-black tracking-[0.3em] text-white/60 uppercase whitespace-nowrap">
+               {isTwoPage ? 'SPREAD' : 'PAGE'} {Math.floor(currentPage / (isTwoPage ? 2 : 1)) + 1} — {currentPage + (isTwoPage ? 2 : 1)} / {totalPages}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Main Body with Sidebar and Reader */}
       <div className="flex-1 flex relative overflow-hidden">
-        <ViewChapterSidebar
-          book={{ ...book, annotations }}
-          selectedChapterIndex={selectedChapterIndex}
-          onSelectChapter={(idx) => { setSelectedChapterIndex(idx); setIsSidebarOpen(false); }}
-          onDeleteAnnotation={handleDeleteAnnotation}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          isSampleOnly={isSampleOnly}
-        />
+          <ViewChapterSidebar
+            book={{ ...book, annotations, bookmarks }}
+            selectedChapterIndex={selectedChapterIndex}
+            onSelectChapter={(idx) => { setSelectedChapterIndex(idx); setIsSidebarOpen(false); }}
+            onDeleteAnnotation={handleDeleteAnnotation}
+            onDeleteBookmark={handleDeleteBookmark}
+            onJumpTo={handleJumpTo}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            isSampleOnly={isSampleOnly}
+          />
 
         {showSettings && (
           <div className="absolute top-4 right-6 w-72 bg-black/90 backdrop-blur-2xl border border-white/10 p-8 z-[100] shadow-2xl animate-in slide-in-from-top-2 duration-300">
@@ -431,11 +681,29 @@ const ViewBook = ({ book, isSampleOnly }) => {
                   className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-accent" 
                 />
               </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-3">AI Voice Persona</p>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { setVoicePreference('male'); stopSpeech(); }}
+                    className={`flex-1 py-1.5 text-[8px] font-bold tracking-widest uppercase border transition-all ${voicePreference === 'male' ? 'bg-accent text-white border-accent' : 'bg-white/5 text-white/30 border-white/5 hover:bg-white/10'}`}
+                  >
+                    Male
+                  </button>
+                  <button 
+                    onClick={() => { setVoicePreference('female'); stopSpeech(); }}
+                    className={`flex-1 py-1.5 text-[8px] font-bold tracking-widest uppercase border transition-all ${voicePreference === 'female' ? 'bg-accent text-white border-accent' : 'bg-white/5 text-white/30 border-white/5 hover:bg-white/10'}`}
+                  >
+                    Female
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        <main className="relative flex-1 flex items-center justify-center p-4 lg:p-12 overflow-hidden bg-black/5 shadow-inner">
+        <main className={`relative flex-1 flex items-center justify-center overflow-hidden bg-black/5 shadow-inner transition-all duration-500 ${isDistractionFree ? 'p-0 lg:p-0' : 'p-4 lg:p-12'}`}>
           <div className="absolute inset-y-0 left-0 w-20 z-40 cursor-pointer flex items-center justify-center group" onClick={() => navigatePage(-1)}>
             <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
               <ChevronLeft size={20} />
@@ -452,20 +720,21 @@ const ViewBook = ({ book, isSampleOnly }) => {
             id="book-surface-final"
             className="relative bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] overflow-hidden"
             style={{
-              width: isTwoPage ? '94%' : '100%',
-              maxWidth: isTwoPage ? '1300px' : '580px',
-              height: isTwoPage ? '86%' : '90%',
-              maxHeight: '940px',
+              width: isDistractionFree ? '100%' : (isTwoPage ? '94%' : '100%'),
+              maxWidth: isDistractionFree ? '100%' : (isTwoPage ? '1300px' : '580px'),
+              height: isDistractionFree ? '100%' : (isTwoPage ? '86%' : '90%'),
+              maxHeight: isDistractionFree ? 'none' : '940px',
               backgroundColor: '#ffffff',
               transformStyle: 'preserve-3d',
               zIndex: 30,
-              minHeight: '400px',
-              minWidth: '280px',
-              border: '1px solid rgba(0,0,0,0.05)',
+              minHeight: isDistractionFree ? '100vh' : '400px',
+              minWidth: isDistractionFree ? '100vw' : '280px',
+              border: isDistractionFree ? 'none' : '1px solid rgba(0,0,0,0.05)',
               opacity: 1,
               visibility: 'visible',
               display: 'block',
-              perspective: '2000px'
+              perspective: '2000px',
+              borderRadius: isDistractionFree ? '0' : '2px'
             }}
           >
             {isTwoPage && (
@@ -505,13 +774,6 @@ const ViewBook = ({ book, isSampleOnly }) => {
             </div>
           </div>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
-            <div className="px-5 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-4">
-              <span className="text-[9px] font-black tracking-[0.3em] text-white/60 uppercase whitespace-nowrap">
-                {isTwoPage ? 'SPREAD' : 'PAGE'} {Math.floor(currentPage / (isTwoPage ? 2 : 1)) + 1} — {currentPage + (isTwoPage ? 2 : 1)} / {totalPages}
-              </span>
-            </div>
-          </div>
         </main>
       </div>
 

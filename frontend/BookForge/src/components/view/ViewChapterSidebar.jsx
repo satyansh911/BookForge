@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { BookOpen, ChevronLeft, Library, Sparkles, Wand2, ShoppingCart, Quote, Trash2, X } from "lucide-react"
+import { BookOpen, ChevronLeft, Library, Sparkles, Wand2, ShoppingCart, Quote, Trash2, X, Bookmark } from "lucide-react"
 import toast from "react-hot-toast"
 import axiosInstance from "../../utils/axiosInstance"
 import { API_PATHS } from "../../utils/apiPaths"
@@ -9,6 +9,8 @@ const ViewChapterSidebar = ({
   selectedChapterIndex,
   onSelectChapter,
   onDeleteAnnotation,
+  onDeleteBookmark,
+  onJumpTo,
   isOpen,
   onClose,
   isSampleOnly
@@ -158,6 +160,42 @@ const ViewChapterSidebar = ({
              )}
           </div>
 
+          {/* Persistent Bookmarks Section */}
+          <div className="p-6 border-b border-black/5 space-y-6">
+             <div className="flex items-center gap-3 opacity-50">
+                <Bookmark size={14} className="text-accent" />
+                <span className="font-serif font-black uppercase text-[9px] tracking-[0.3em] text-primary">Persistent Bookmarks</span>
+             </div>
+             
+             <div className="space-y-4">
+               {book.bookmarks && book.bookmarks.length > 0 ? (
+                 book.bookmarks.map((bm) => (
+                   <div key={bm._id} className="group relative p-4 bg-surface border border-black/5 hover:border-accent/20 transition-all">
+                      <button 
+                        onClick={() => onJumpTo(bm.chapterIndex, bm.pageIndex || 0)}
+                        className="text-left w-full"
+                      >
+                        <p className="text-[11px] font-serif font-bold text-primary uppercase tracking-tight group-hover:text-accent transition-colors">
+                          {bm.label || `Chapter ${bm.chapterIndex + 1}, Page ${bm.pageIndex + 1}`}
+                        </p>
+                        <p className="text-[8px] text-muted mt-1 uppercase tracking-widest leading-relaxed">
+                          Saved Position
+                        </p>
+                      </button>
+                      <button 
+                         onClick={() => onDeleteBookmark(bm._id)}
+                         className="absolute top-4 right-4 text-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                         <Trash2 size={12} />
+                      </button>
+                   </div>
+                 ))
+               ) : (
+                 <p className="text-[10px] text-muted italic">No bookmarks preserved.</p>
+               )}
+             </div>
+          </div>
+
           {/* Saved Excerpts Section */}
           <div className="p-6 border-b border-black/5 space-y-6">
              <div className="flex items-center gap-3 opacity-50">
@@ -169,14 +207,21 @@ const ViewChapterSidebar = ({
                {savedQuotes.length > 0 ? (
                  savedQuotes.map((quote) => (
                    <div key={quote._id} className="group relative p-4 bg-surface border border-black/5 hover:border-accent/20 transition-all">
-                      <p className="text-[11px] font-serif italic text-primary leading-relaxed line-clamp-3">
-                        "{quote.text}"
-                      </p>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <span className="text-[8px] text-muted uppercase tracking-tighter">Chapter {quote.chapterIndex + 1}</span>
+                      <button 
+                        onClick={() => onJumpTo(quote.chapterIndex, quote.pageIndex || 0)}
+                        className="text-left w-full"
+                      >
+                        <p className="text-[11px] font-serif italic text-primary leading-relaxed line-clamp-3 group-hover:text-accent transition-colors">
+                          "{quote.text}"
+                        </p>
+                      </button>
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-black/5">
+                         <span className="text-[8px] text-muted uppercase tracking-tighter">
+                           Chapter {quote.chapterIndex + 1} — Page {(quote.pageIndex || 0) + 1}
+                         </span>
                          <button 
                            onClick={() => onDeleteAnnotation(quote._id)}
-                           className="text-muted hover:text-red-500 transition-colors"
+                           className="text-muted hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                          >
                            <Trash2 size={12} />
                          </button>

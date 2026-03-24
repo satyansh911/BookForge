@@ -252,6 +252,34 @@ const getBookDeals = async (req, res) => {
     }
 };
 
+const addBookmark = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+        if (book.userId.toString() !== req.user._id.toString()) return res.status(401).json({ message: 'Unauthorized' });
+
+        book.bookmarks.push(req.body);
+        await book.save();
+        res.status(201).json(book.bookmarks[book.bookmarks.length - 1]);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+const deleteBookmark = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+        if (book.userId.toString() !== req.user._id.toString()) return res.status(401).json({ message: 'Unauthorized' });
+
+        book.bookmarks = book.bookmarks.filter(bm => bm._id.toString() !== req.params.bookmarkId);
+        await book.save();
+        res.status(200).json({ message: 'Bookmark deleted' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     createBook,
     getBooks,
@@ -263,6 +291,8 @@ module.exports = {
     updateBookProgress,
     addAnnotation,
     deleteAnnotation,
+    addBookmark,
+    deleteBookmark,
     getRelatedBooks,
     getBookDeals
 };

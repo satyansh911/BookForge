@@ -11,6 +11,8 @@ const {
     updateBookProgress,
     addAnnotation,
     deleteAnnotation,
+    addBookmark,
+    deleteBookmark,
     getRelatedBooks,
     getBookDeals
 } = require('../controller/bookController');
@@ -23,6 +25,8 @@ router.route('/progress/:id').patch(protect, updateBookProgress);
 router.route('/annotations/:id').post(protect, addAnnotation);
 router.route('/annotations/:id/:annotationId').delete(protect, deleteAnnotation);
 router.route('/related/:id').get(protect, getRelatedBooks);
+router.route('/bookmarks/:id').post(protect, addBookmark);
+router.route('/bookmarks/:id/:bookmarkId').delete(protect, deleteBookmark);
 router.route('/deals/:id').get(protect, getBookDeals);
 router.route('/:id').get(protect, getBookById).put(protect, updateBook).delete(protect, deleteBook);
 router.route('/cover/:id').put(protect, upload.single('coverImage'), updateBookCover);

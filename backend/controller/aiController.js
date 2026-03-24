@@ -219,44 +219,64 @@ const continueStory = async (req, res) => {
 
 const speakText = async (req, res) => {
     try {
-        const { text, voiceId } = req.body;
+        const { text, voiceId, voiceType } = req.body;
         if (!text) {
             return res.status(400).json({ message: 'Please provide text to synthesize' });
         }
 
         const axios = require('axios');
-        const ELEVEN_LABS_API_KEY = process.env.ELEVEN_LABS_API_KEY;
-        
-        if (!ELEVEN_LABS_API_KEY || ELEVEN_LABS_API_KEY === 'YOUR_ELEVEN_LABS_API_KEY_HERE') {
-            return res.status(400).json({ message: 'Eleven Labs API Key is missing. Please add it to your .env file.' });
+        const SMALLEST_KEY = process.env.SMALLEST_AI_API_KEY;
+
+        if (!SMALLEST_KEY || SMALLEST_KEY === 'YOUR_SMALLEST_AI_API_KEY_HERE') {
+            return res.status(400).json({ 
+                message: 'Smallest AI API Key is missing. Please add it to your .env file.',
+                needsFallback: true 
+            });
         }
 
-        const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel - a versatile voice
+        const voiceMap = {
+            'male': 'magnus',
+            'female': 'kavya'
+        };
 
-        const response = await axios({
-            method: 'post',
-            url: `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || DEFAULT_VOICE_ID}`,
-            data: {
-                text,
-                model_id: "eleven_monolingual_v1",
-                voice_settings: {
-                    stability: 0.5,
-                    similarity_boost: 0.5
-                }
-            },
-            headers: {
-                'Accept': 'audio/mpeg',
-                'xi-api-key': ELEVEN_LABS_API_KEY,
-                'Content-Type': 'application/json'
-            },
-            responseType: 'arraybuffer'
-        });
+        const finalVoiceId = voiceId || voiceMap[voiceType] || 'magnus';
 
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(response.data);
+        try {
+            const response = await axios({
+                method: 'post',
+                url: 'https://api.smallest.ai/waves/v1/lightning-v3.1/get_speech',
+                headers: {
+                    'Authorization': `Bearer ${SMALLEST_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    text,
+                    voice_id: finalVoiceId,
+                    model: "lightning-v3.1",
+                    output_format: "mp3"
+                },
+                responseType: 'arraybuffer'
+            });
+
+            console.log(`Smallest AI success! Buffer length: ${response.data.byteLength}`);
+            res.set('Content-Type', 'audio/mpeg');
+            return res.send(Buffer.from(response.data));
+        } catch (error) {
+            let errorDetail = error.message;
+            if (error.response?.data) {
+                try {
+                    errorDetail = JSON.parse(Buffer.from(error.response.data).toString());
+                } catch (e) {}
+            }
+            console.error("Smallest AI Synthesis Error:", errorDetail);
+            return res.status(error.response?.status || 500).json({ 
+                message: "Smallest AI synthesis failed. Falling back to local engine.",
+                needsFallback: true
+            });
+        }
     } catch (error) {
-        console.error("Eleven Labs Error:", error.response?.data || error.message);
-        res.status(500).json({ message: 'Failed to synthesize speech.' });
+        console.error("General Speech Error:", error);
+        res.status(500).json({ message: "Internal server error in speech synthesis", needsFallback: true });
     }
 };
 

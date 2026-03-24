@@ -13,6 +13,8 @@ export const API_PATHS = {
         UPDATE_BOOK: "/api/books",
         DELETE_BOOK: "/api/books",
         UPDATE_COVER: "/api/books/cover",
+        ADD_BOOKMARK: "/api/books/bookmarks",
+        DELETE_BOOKMARK: "/api/books/bookmarks",
     },
     AI: {
         GENERATE_OUTLINE: "/api/ai/generate-outline",
