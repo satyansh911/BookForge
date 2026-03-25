@@ -98,9 +98,12 @@ const MangaPage = () => {
     } catch (error) {
       if (error.response?.status === 400) {
         toast.error("YOU ALREADY HYPED THIS CHARACTER! 🔥");
+      } else if (error.code === 'ERR_INVALID_RESPONSE') {
+        toast.error("Deployment Error: API Misconfigured (Received HTML).");
+        console.error("Infrastructure Error: Your VITE_BASE_URL might be missing or wrong.");
       } else {
-        toast.error("Hype session failed. Try again!");
-        console.error("Voting error:", error);
+        toast.error("Hype session failed. Connection lost or API down.");
+        console.error("Voting error details:", error);
       }
     }
   };
@@ -121,6 +124,9 @@ const MangaPage = () => {
         }
       } catch (error) {
         console.error("Leaderboard fetch failed, using fallbacks", error);
+        if (error.code === 'ERR_INVALID_RESPONSE') {
+          console.error("CRITICAL: Leaderboard API returned HTML. Check VITE_BASE_URL deployment variable.");
+        }
       } finally {
         setLoading(false);
       }

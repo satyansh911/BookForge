@@ -29,6 +29,14 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
     (response) => {
+        // Handle cases where a 200 OK returns HTML instead of JSON (common in misconfigured proxies)
+        const contentType = response.headers['content-type'];
+        if (contentType && contentType.includes('text/html')) {
+            console.error('API Misconfiguration: Received HTML instead of JSON. Check VITE_BASE_URL.');
+            const error = new Error('Invalid API Response (HTML)');
+            error.code = 'ERR_INVALID_RESPONSE';
+            return Promise.reject(error);
+        }
         return response;
     },
     (error) => {
@@ -36,8 +44,13 @@ axiosInstance.interceptors.response.use(
             if(error.response.status === 500){
                 console.error('Server error occurred.');
             }
+            if(error.response.status === 404){
+                console.error(`Route not found: ${error.config.url}. BaseURL: ${error.config.baseURL}`);
+            }
         } else if(error.code === 'ECONNABORTED'){
             console.error('Request timeout. Please try again.');
+        } else if (!import.meta.env.VITE_BASE_URL && !import.meta.env.DEV) {
+            console.error('DEPLOYMENT ERROR: VITE_BASE_URL is not set in production!');
         }
         return Promise.reject(error);
     }
