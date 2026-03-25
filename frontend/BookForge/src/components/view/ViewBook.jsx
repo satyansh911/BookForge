@@ -63,8 +63,10 @@ const ViewBook = ({ book, isSampleOnly }) => {
   const lastTrackedPage = useRef({ chapter: selectedChapterIndex, page: currentPage });
   const dwellTimer = useRef(null);
   const currentAudioRef = useRef(null);
+  const silentAudioRef = useRef(new Audio('data:audio/wav;base64,UklGRigAAABXQVZFav7//f////9nZW5lcmF0ZWQgYnkgYXVkaW9nZW4uY29tCg==')); 
   const bubbleRef = useRef(null);
   const [isBubbleExpanded, setIsBubbleExpanded] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
 
   // Initialize Draggable for the Insight Bubble
   useEffect(() => {
@@ -579,6 +581,132 @@ const ViewBook = ({ book, isSampleOnly }) => {
     }
   };
 
+  const animatePageTurn = (direction, onComplete) => {
+    if (!contentRef.current || !containerRef.current) return onComplete();
+
+    const tl = gsap.timeline({ onComplete });
+    
+    // Page Peel Animation logic using GSAP
+    if (direction === 'next') {
+      tl.to(containerRef.current, {
+        rotationY: -5,
+        x: -20,
+        duration: 0.3,
+        ease: "power2.in"
+      })
+      .to(contentRef.current, {
+        opacity: 0,
+        x: -100,
+        duration: 0.4,
+        ease: "power2.in"
+      }, "-=0.2");
+    } else {
+      tl.to(containerRef.current, {
+        rotationY: 5,
+        x: 20,
+        duration: 0.3,
+        ease: "power2.in"
+      })
+      .to(contentRef.current, {
+        opacity: 0,
+        x: 100,
+        duration: 0.4,
+        ease: "power2.in"
+      }, "-=0.2");
+    }
+
+    tl.set(contentRef.current, { x: direction === 'next' ? 100 : -100 });
+    tl.to(containerRef.current, { rotationY: 0, x: 0, duration: 0.3 });
+    tl.to(contentRef.current, {
+      opacity: 1,
+      x: 0,
+      duration: 0.5,
+      ease: "power2.out"
+    });
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages - (isTwoPage ? 2 : 1)) {
+      animatePageTurn('next', () => setCurrentPage(prev => prev + (isTwoPage ? 2 : 1)));
+    } else if (selectedChapterIndex < book.chapters.length - 1) {
+      if (isSampleOnly) {
+         toast("Subscription required for full access.", { icon: '🔒', style: { borderRadius: '0', background: '#000', color: '#fff' } });
+         return;
+      }
+      animatePageTurn('next', () => {
+        setSelectedChapterIndex(prev => prev + 1);
+        setCurrentPage(0);
+      });
+    } else {
+      toast("Threshold of the monograph reached.", { icon: '📖' });
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      animatePageTurn('prev', () => setCurrentPage(prev => Math.max(0, prev - (isTwoPage ? 2 : 1))));
+    } else if (selectedChapterIndex > 0) {
+      animatePageTurn('prev', () => {
+        setSelectedChapterIndex(prev => prev - 1);
+        setCurrentPage(0); // This might need logic to go to the LAST page of the previous chapter
+        setStartAtLastPage(true);
+      });
+    }
+  };
+
+  // Touch Handlers for Swipe
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!touchStart) return;
+    const touchEnd = e.changedTouches[0].clientX;
+    const distance = touchStart - touchEnd;
+
+    if (distance > 70) { // Swipe Left
+      handleNextPage();
+    } else if (distance < -70) { // Swipe Right
+      handlePrevPage();
+    }
+    setTouchStart(null);
+  };
+
+  // MediaSession API Integration
+  useEffect(() => {
+    if ('mediaSession' in navigator && selectedChapter) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: book.title,
+        artist: book.author,
+        album: selectedChapter.title,
+        artwork: [
+          { src: book.coverImage || '', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (!isAudiobookMode) handleAudiobookToggle();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (isAudiobookMode) handleAudiobookToggle();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', handleNextPage);
+      navigator.mediaSession.setActionHandler('previoustrack', handlePrevPage);
+    }
+  }, [book, selectedChapter, isAudiobookMode]);
+
+  // Handle Background Audio Continuity
+  useEffect(() => {
+    if (isAudiobookMode) {
+      silentAudioRef.current.loop = true;
+      silentAudioRef.current.play().catch(() => {
+        // Handle user interaction requirement
+      });
+    } else {
+      silentAudioRef.current.pause();
+    }
+  }, [isAudiobookMode]);
+
   if (!book || !selectedChapter) return (
     <div className="fixed inset-0 bg-[#121212] flex items-center justify-center text-white/20 font-serif italic tracking-widest">
       LOADING MONOGRAPH...
@@ -744,23 +872,28 @@ const ViewBook = ({ book, isSampleOnly }) => {
           </div>
         )}
 
-        <main className={`relative flex-1 flex items-center justify-center overflow-hidden bg-black/5 shadow-inner transition-all duration-500 ${isDistractionFree ? 'p-0 lg:p-0' : 'p-4 lg:p-12'}`}>
-          {/* Navigation Overlays */}
-          <div 
-            className={`absolute inset-y-0 left-0 w-[15%] max-w-[120px] z-50 cursor-pointer flex items-center justify-center transition-opacity duration-300 ${isDistractionFree ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`} 
-            onClick={() => navigatePage(-1)}
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isDistractionFree ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/40 border border-white/10 opacity-0 group-hover:opacity-100'}`}>
-              <ChevronLeft size={24} />
-            </div>
+        <main 
+          className={`relative flex-1 flex items-center justify-center overflow-hidden bg-black/5 shadow-inner transition-all duration-500 ${isDistractionFree ? 'p-0 lg:p-0' : 'p-4 lg:p-12'}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Navigation Overlays - Hidden on mobile, only for desktop clicks */}
+          <div className="absolute inset-y-0 left-0 w-1/4 max-w-[150px] z-30 group hidden md:flex items-center justify-start pl-8">
+            <button 
+              onClick={handlePrevPage}
+              className="p-4 rounded-full bg-black/10 backdrop-blur-md text-white/40 group-hover:bg-accent/20 group-hover:text-accent transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 translate-x-[-20px] group-hover:translate-x-0"
+            >
+              <ChevronLeft size={32} />
+            </button>
           </div>
-          <div 
-            className={`absolute inset-y-0 right-0 w-[15%] max-w-[120px] z-50 cursor-pointer flex items-center justify-center transition-opacity duration-300 ${isDistractionFree ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`} 
-            onClick={() => navigatePage(1)}
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isDistractionFree ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/40 border border-white/10 opacity-0 group-hover:opacity-100'}`}>
-              <ChevronRight size={24} />
-            </div>
+
+          <div className="absolute inset-y-0 right-0 w-1/4 max-w-[150px] z-30 group hidden md:flex items-center justify-end pr-8">
+            <button 
+              onClick={handleNextPage}
+              className="p-4 rounded-full bg-black/10 backdrop-blur-md text-white/40 group-hover:bg-accent/20 group-hover:text-accent transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 translate-x-[20px] group-hover:translate-x-0"
+            >
+              <ChevronRight size={32} />
+            </button>
           </div>
 
           <div 
