@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['free', 'premium'],
         default: 'free',
+    },
+    synthesizedBookCount: {
+        type: Number,
+        default: 0,
     }
 }, { timestamps: true });
 

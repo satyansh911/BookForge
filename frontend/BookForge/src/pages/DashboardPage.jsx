@@ -61,6 +61,20 @@ const DashboardPage = () => {
       toast.error("Failed to remove excerpt.");
     }
   };
+  
+  const handleDeleteBook = async (bookId) => {
+    if (!window.confirm("Are you certain you wish to purge this monograph from the archives? This action is irreversible.")) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(`${API_PATHS.BOOKS.DELETE_BOOK}/${bookId}`);
+      setBooks(books.filter(b => b._id !== bookId));
+      toast.success("Monograph deleted successfully.");
+    } catch (error) {
+      toast.error("Failed to delete monograph.");
+    }
+  };
 
   const allQuotes = books.reduce((acc, book) => {
     const quotes = (book.annotations || [])
@@ -166,6 +180,7 @@ const DashboardPage = () => {
                     }} 
                     variant="grid"
                     onClick={() => navigate(`/view-book/${book._id}`)}
+                    onDelete={() => handleDeleteBook(book._id)}
                   />
                 </Reveal>
               ))}
@@ -234,6 +249,7 @@ const DashboardPage = () => {
                   }} 
                   variant="list" 
                   onClick={() => navigate(`/view-book/${book._id}`)}
+                  onDelete={() => handleDeleteBook(book._id)}
                 />
               ))}
             </div>

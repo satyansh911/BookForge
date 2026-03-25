@@ -27,6 +27,7 @@ const Navbar = () => {
   const navLinks = user 
     ? [
         { name: 'HOME', path: '/' },
+        { name: 'MANGA', path: '/manga' },
         { name: 'EXPLORE', path: '/explore' },
         { name: 'PRICING', path: '/pricing' },
         { name: 'PROFILE', path: '/profile' },

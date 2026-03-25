@@ -96,6 +96,10 @@ const bookSchema = new mongoose.Schema(
         lastPageIndex: {
             type: Number,
             default: 0
+        },
+        isSynthesized: {
+            type: Boolean,
+            default: false
         }
     },
     { timestamps: true }

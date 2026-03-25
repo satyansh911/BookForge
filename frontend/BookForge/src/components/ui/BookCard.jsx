@@ -1,8 +1,9 @@
 import React, { useRef } from 'react';
 import VerticalLabel from './VerticalLabel';
 import gsap from 'gsap';
+import { Trash2 } from 'lucide-react';
 
-const BookCard = ({ book, variant = 'grid', onClick }) => {
+const BookCard = ({ book, variant = 'grid', onClick, onDelete }) => {
   const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
   const imageUrl = book.image ? (
     book.image.startsWith('http') || book.image.startsWith('data:') 
@@ -56,6 +57,15 @@ const BookCard = ({ book, variant = 'grid', onClick }) => {
             {book.year || '2024'}
           </span>
           <VerticalLabel>{book.category || 'DESIGN'}</VerticalLabel>
+          {onDelete && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-2 text-muted hover:text-red-500 hover:bg-red-500/10 transition-all rounded-full"
+              title="Delete Document"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -85,6 +95,15 @@ const BookCard = ({ book, variant = 'grid', onClick }) => {
         <div className="absolute top-4 right-0">
           <VerticalLabel className="bg-white/90 backdrop-blur-sm pr-1">{book.category || 'INSPIRE'}</VerticalLabel>
         </div>
+        {onDelete && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="absolute top-3 left-3 p-2 bg-black/40 backdrop-blur-md text-white/40 hover:text-red-500 hover:bg-black/60 rounded-full transition-all border border-white/5 opacity-0 group-hover:opacity-100 z-10"
+            title="Delete Document"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
       <div className="mt-4 flex justify-between items-start">
         <div>

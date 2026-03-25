@@ -24,6 +24,8 @@ exports.registerUser = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
+                tier: user.tier,
+                synthesizedBookCount: user.synthesizedBookCount || 0,
                 token: generateToken(user._id),
             });
         } else{
@@ -45,6 +47,8 @@ exports.loginUser = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
+                tier: user.tier,
+                synthesizedBookCount: user.synthesizedBookCount || 0,
                 token: generateToken(user._id),
             });
         } else{
@@ -69,6 +73,8 @@ exports.getProfile = async (req, res) => {
             occupation: user.occupation,
             location: user.location,
             isPro: user.isPro,
+            tier: user.tier,
+            synthesizedBookCount: user.synthesizedBookCount,
         });
     } catch (error) {
         console.error('getProfile error:', error);
@@ -98,6 +104,8 @@ exports.updateUserProfile = async (req, res) => {
                 occupation: updatedUser.occupation,
                 location: updatedUser.location,
                 isPro: updatedUser.isPro,
+                tier: updatedUser.tier,
+                synthesizedBookCount: updatedUser.synthesizedBookCount,
             });
         } else{
             res.status(404).json({ message: 'User not found' });

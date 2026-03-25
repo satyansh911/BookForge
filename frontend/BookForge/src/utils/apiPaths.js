@@ -15,6 +15,7 @@ export const API_PATHS = {
         UPDATE_COVER: "/api/books/cover",
         ADD_BOOKMARK: "/api/books/bookmarks",
         DELETE_BOOKMARK: "/api/books/bookmarks",
+        UPLOAD_PDF: "/api/books/upload-pdf",
     },
     AI: {
         GENERATE_OUTLINE: "/api/ai/generate-outline",

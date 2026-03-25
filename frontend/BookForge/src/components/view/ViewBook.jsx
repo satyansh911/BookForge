@@ -298,13 +298,6 @@ const ViewBook = ({ book, isSampleOnly }) => {
         setSelectedChapterIndex(selectedChapterIndex - 1);
         setCurrentPage(0); 
       } else if (nextPage >= totalPages && selectedChapterIndex < book.chapters.length - 1) {
-        if (isSampleOnly) {
-          toast("Subscription required for full access.", { 
-            icon: '🔒', 
-            style: { borderRadius: '0', background: '#000', color: '#fff' } 
-          });
-          return;
-        }
         setSelectedChapterIndex(selectedChapterIndex + 1);
         setCurrentPage(0);
       }
@@ -582,57 +575,14 @@ const ViewBook = ({ book, isSampleOnly }) => {
   };
 
   const animatePageTurn = (direction, onComplete) => {
-    if (!contentRef.current || !containerRef.current) return onComplete();
-
-    const tl = gsap.timeline({ onComplete });
-    
-    // Page Peel Animation logic using GSAP
-    if (direction === 'next') {
-      tl.to(containerRef.current, {
-        rotationY: -5,
-        x: -20,
-        duration: 0.3,
-        ease: "power2.in"
-      })
-      .to(contentRef.current, {
-        opacity: 0,
-        x: -100,
-        duration: 0.4,
-        ease: "power2.in"
-      }, "-=0.2");
-    } else {
-      tl.to(containerRef.current, {
-        rotationY: 5,
-        x: 20,
-        duration: 0.3,
-        ease: "power2.in"
-      })
-      .to(contentRef.current, {
-        opacity: 0,
-        x: 100,
-        duration: 0.4,
-        ease: "power2.in"
-      }, "-=0.2");
-    }
-
-    tl.set(contentRef.current, { x: direction === 'next' ? 100 : -100 });
-    tl.to(containerRef.current, { rotationY: 0, x: 0, duration: 0.3 });
-    tl.to(contentRef.current, {
-      opacity: 1,
-      x: 0,
-      duration: 0.5,
-      ease: "power2.out"
-    });
+    // Reverted: Call onComplete immediately for a snappier feel as requested
+    onComplete();
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages - (isTwoPage ? 2 : 1)) {
       animatePageTurn('next', () => setCurrentPage(prev => prev + (isTwoPage ? 2 : 1)));
     } else if (selectedChapterIndex < book.chapters.length - 1) {
-      if (isSampleOnly) {
-         toast("Subscription required for full access.", { icon: '🔒', style: { borderRadius: '0', background: '#000', color: '#fff' } });
-         return;
-      }
       animatePageTurn('next', () => {
         setSelectedChapterIndex(prev => prev + 1);
         setCurrentPage(0);
@@ -877,22 +827,34 @@ const ViewBook = ({ book, isSampleOnly }) => {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Navigation Overlays - Hidden on mobile, only for desktop clicks */}
-          <div className="absolute inset-y-0 left-0 w-1/4 max-w-[150px] z-30 group hidden md:flex items-center justify-start pl-8">
+          {/* Navigation Controls: Focused on edges to avoid hiding content */}
+          <div className="absolute inset-y-0 left-0 w-12 z-[100] flex items-center justify-center pointer-events-none">
             <button 
               onClick={handlePrevPage}
-              className="p-4 rounded-full bg-black/10 backdrop-blur-md text-white/40 group-hover:bg-accent/20 group-hover:text-accent transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 translate-x-[-20px] group-hover:translate-x-0"
+              className="p-3 bg-black/40 backdrop-blur-md text-white/40 hover:text-accent hover:bg-black/60 rounded-r-xl transition-all pointer-events-auto border-y border-r border-white/10"
+              title="Previous Page"
             >
-              <ChevronLeft size={32} />
+              <ChevronLeft size={24} />
             </button>
           </div>
 
-          <div className="absolute inset-y-0 right-0 w-1/4 max-w-[150px] z-30 group hidden md:flex items-center justify-end pr-8">
+          <div className="absolute inset-y-0 left-0 w-12 z-[100] flex items-center justify-center pointer-events-none">
+            <button 
+              onClick={handlePrevPage}
+              className="p-3 bg-black/40 backdrop-blur-xl text-white/40 hover:text-accent hover:bg-black/60 rounded-r-2xl transition-all pointer-events-auto border-y border-r border-white/5 shadow-[5px_0_20px_rgba(0,0,0,0.5)] group"
+              title="Previous Page"
+            >
+              <ChevronLeft size={24} className="group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+
+          <div className="absolute inset-y-0 right-0 w-12 z-[100] flex items-center justify-center pointer-events-none">
             <button 
               onClick={handleNextPage}
-              className="p-4 rounded-full bg-black/10 backdrop-blur-md text-white/40 group-hover:bg-accent/20 group-hover:text-accent transition-all duration-500 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 translate-x-[20px] group-hover:translate-x-0"
+              className="p-3 bg-black/40 backdrop-blur-xl text-white/40 hover:text-accent hover:bg-black/60 rounded-l-2xl transition-all pointer-events-auto border-y border-l border-white/5 shadow-[-5px_0_20px_rgba(0,0,0,0.5)] group"
+              title="Next Page"
             >
-              <ChevronRight size={32} />
+              <ChevronRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
 
@@ -1050,8 +1012,10 @@ const ViewBook = ({ book, isSampleOnly }) => {
                 </div>
                 {wpm > 0 && (
                   <div className="text-right">
-                    <p className="text-[8px] text-white/40 tracking-[0.2em] uppercase">Rate</p>
-                    <p className="text-sm font-mono text-white/80">{wpm} WPM</p>
+                    <p className="text-[8px] text-white/40 tracking-[0.2em] uppercase">Est. Remaining</p>
+                    <p className="text-sm font-mono text-white/80">
+                      {Math.ceil(((100 - progress) / 100) * book.chapters.reduce((acc, c) => acc + c.content.split(/\s+/).length, 0) / wpm)} MINS
+                    </p>
                   </div>
                 )}
               </div>

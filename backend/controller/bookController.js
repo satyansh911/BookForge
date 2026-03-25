@@ -2,7 +2,7 @@ const Book = require('../models/Book');
 
 const createBook = async (req, res) => {
     try{
-        const { title, author, subtitle, chapters} = req.body;
+        const { title, author, subtitle, chapters, isSynthesized} = req.body;
         if(!title || !author){
             return res.status(400).json({ message: 'Please provide all required fields' });
         }
@@ -12,10 +12,19 @@ const createBook = async (req, res) => {
             author,
             subtitle,
             chapters,
+            isSynthesized: !!isSynthesized
         });
-            const savedBook = await book.save();
-            res.status(201).json(savedBook);
+        
+        const savedBook = await book.save();
+
+        if (isSynthesized) {
+            const User = require('../models/User');
+            await User.findByIdAndUpdate(req.user._id, { $inc: { synthesizedBookCount: 1 } });
+        }
+
+        res.status(201).json(savedBook);
     } catch (error) {
+        console.error("Create Book Error:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -110,16 +119,22 @@ const uploadPdf = async (req, res) => {
         }
 
         const fs = require('fs');
+        const path = require('path');
         const pdf = require('pdf-parse');
         
-        const dataBuffer = fs.readFileSync(req.file.path);
+        const filePath = path.resolve(req.file.path);
+        const dataBuffer = fs.readFileSync(filePath);
         const data = await pdf(dataBuffer);
         
-        // Extract title from filename (remove extension and timestamp)
+        const text = data.text.trim();
+        if (!text || text.length < 10) {
+            console.warn("PDF Text Extraction yielded very little text:", text.length);
+            throw new Error("No readable text found in PDF. It might be a scanned image or encrypted.");
+        }
+
+        // Extract title from filename
         const originalName = req.file.originalname.replace(/\.pdf$/i, '').split('-').slice(0, -1).join('-') || req.file.originalname;
         
-        // Split text into "chapters" of ~5 KB for our reader
-        const text = data.text.trim();
         const chapters = [];
         const chunkSize = 5000;
         
@@ -127,7 +142,7 @@ const uploadPdf = async (req, res) => {
             chapters.push({
                 title: `Section ${(chapters.length + 1).toString().padStart(2, '0')}`,
                 content: text.substring(i, i + chunkSize),
-                description: `Ingested Analysis: Part ${chapters.length + 1}`
+                description: `Ingested Content: Part ${chapters.length + 1}`
             });
         }
 
@@ -135,19 +150,19 @@ const uploadPdf = async (req, res) => {
             userId: req.user._id,
             title: originalName.toUpperCase() || "IMPORTED MONOGRAPH",
             author: req.user.name || "Unknown Author",
-            chapters: chapters.slice(0, 50), // Cap at 50 chapters
+            chapters: chapters.slice(0, 50), 
             status: 'draft'
         });
 
         const savedBook = await book.save();
-
-        // Clean up the uploaded file
-        fs.unlinkSync(req.file.path);
+        fs.unlinkSync(filePath);
 
         res.status(201).json(savedBook);
     } catch (error) {
-        console.error("PDF Ingestion Error:", error);
-        res.status(500).json({ message: 'Failed to ingest PDF. Ensure it is text-readable and not secured.' });
+        console.error("PDF Ingestion Error Details:", error);
+        res.status(500).json({ 
+            message: error.message || 'Failed to ingest PDF. Ensure it is text-readable and not secured.' 
+        });
     }
 };
 
@@ -207,7 +222,7 @@ const getRelatedBooks = async (req, res) => {
         if (!book) return res.status(404).json({ message: 'Book not found' });
 
         const axios = require('axios');
-        // Search Google Books for related titles based on the current book's title
+        // Search only by title to find the original work (even if reimagined)
         const query = encodeURIComponent(book.title);
         const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
         
@@ -233,17 +248,69 @@ const getBookDeals = async (req, res) => {
         if (!book) return res.status(404).json({ message: 'Book not found' });
 
         const axios = require('axios');
-        const query = encodeURIComponent(book.title + " " + book.author);
-        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=3`);
+        // Search only by book title to find original published works
+        const query = encodeURIComponent(book.title);
+        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=10`);
         
-        const deals = response.data.items?.map(item => ({
-            id: item.id,
-            title: item.volumeInfo.title,
-            buyLink: item.saleInfo?.buyLink,
-            price: item.saleInfo?.listPrice ? `${item.saleInfo.listPrice.amount} ${item.saleInfo.listPrice.currencyCode}` : "Price Varies",
-            isEbook: item.saleInfo?.isEbook,
-            publisher: item.volumeInfo.publisher
-        })).filter(d => d.buyLink) || [];
+        let deals = [];
+        const seenTitles = new Set();
+        const baseTitle = book.title.toLowerCase().trim();
+
+        if (response.data.items) {
+            deals = response.data.items.map(item => {
+                const title = item.volumeInfo.title;
+                const lowTitle = title.toLowerCase().trim();
+                const author = item.volumeInfo.authors?.[0] || "";
+                const hasBuyLink = !!item.saleInfo?.buyLink;
+                
+                // For regular books, we want a strict match. 
+                // For synthesized books, we allow broader "Related Market" discovery.
+                const isMatch = !book.isSynthesized ? 
+                    (lowTitle.includes(baseTitle) || baseTitle.includes(lowTitle)) : 
+                    true; // Allow all related for synthesized
+
+                if (!isMatch) return null;
+                if (seenTitles.has(lowTitle)) return null;
+                seenTitles.add(lowTitle);
+
+                const searchQuery = encodeURIComponent(`${title} ${author}`);
+
+                return {
+                    id: item.id,
+                    title: title,
+                    buyLink: item.saleInfo?.buyLink || `https://www.google.com/search?tbm=bks&q=${searchQuery}`,
+                    price: item.saleInfo?.listPrice ? 
+                        `${item.saleInfo.listPrice.amount} ${item.saleInfo.listPrice.currencyCode}` : 
+                        (hasBuyLink ? "Check Price" : "Search Market"),
+                    isEbook: item.saleInfo?.isEbook || false,
+                    publisher: item.volumeInfo.publisher || (hasBuyLink ? "Direct Acquisition" : "Market Discovery"),
+                    isExternalSearch: !hasBuyLink
+                };
+            }).filter(d => d !== null).slice(0, 3); // Limit to top 3 accurate results
+        }
+
+        // Final fallback if absolutely nothing found or no matches
+        if (deals.length === 0) {
+            const currentQuery = encodeURIComponent(`${book.title} ${book.author}`);
+            deals.push({
+                id: 'fallback-amazon',
+                title: book.title,
+                buyLink: `https://www.amazon.com/s?k=${currentQuery}`,
+                price: "Market Price",
+                isEbook: false,
+                publisher: "Amazon Global Search",
+                isExternalSearch: true
+            });
+            deals.push({
+                id: 'fallback-google',
+                title: book.title,
+                buyLink: `https://www.google.com/search?tbm=bks&q=${currentQuery}`,
+                price: "Explorer Search",
+                isEbook: false,
+                publisher: "Google Books Explorer",
+                isExternalSearch: true
+            });
+        }
 
         res.status(200).json(deals);
     } catch (error) {

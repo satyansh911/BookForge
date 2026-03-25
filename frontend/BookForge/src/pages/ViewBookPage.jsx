@@ -9,6 +9,8 @@ import { API_PATHS } from "../utils/apiPaths"
 import ViewBook from "../components/view/ViewBook"
 import Reveal from "../components/ui/Reveal"
 import { useAuth } from "../context/AuthContext"
+import { useNavigate } from "react-router-dom"
+import { MessageSquare } from "lucide-react"
 import typographyImg from '../assets/bookimgs/typography.png';
 import gridSystemsImg from '../assets/bookimgs/gridsystems.png';
 import artOfColorImg from '../assets/bookimgs/theartofcolor.jpg';
@@ -34,7 +36,8 @@ const ViewBookPage = () => {
   const [isLoading, setIsLoading] = useState(true); 
   const {bookId} = useParams();
   const { user } = useAuth();
-  const isSampleOnly = !user || (user.tier !== 'premium' && !user.isPro);
+  const navigate = useNavigate();
+  const isSampleOnly = false; // All chapters are now readable by everyone
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -113,7 +116,20 @@ const ViewBookPage = () => {
           <ViewBookSkeleton />
         </div>
       ) : book ? (
-        <ViewBook book={book} isSampleOnly={isSampleOnly} />
+        <>
+          <ViewBook book={book} isSampleOnly={isSampleOnly} />
+          
+          {/* Public Chat Trigger */}
+          <button 
+            onClick={() => navigate(`/discuss/book/${book._id}`)}
+            className="fixed bottom-8 right-8 z-50 bg-black text-white p-4 rounded-full shadow-2xl hover:bg-primary transition-all group flex items-center gap-3"
+          >
+            <MessageSquare size={24} />
+            <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 whitespace-nowrap font-bold text-xs">
+              PUBLIC CHAT
+            </span>
+          </button>
+        </>
       ) : (
         <div className="max-w-7xl mx-auto px-6 py-48">
           <div className="flex flex-col items-center justify-center text-center bg-surface border border-border border-dashed p-12">

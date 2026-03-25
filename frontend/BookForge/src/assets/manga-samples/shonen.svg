@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="white"/>
+  <path d="M50 50 L462 50 L462 462 L50 462 Z" fill="none" stroke="black" stroke-width="8"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="black" stroke-width="4" stroke-dasharray="10 10"/>
+  <path d="M100 100 L200 256 L100 412" fill="none" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <path d="M412 100 L312 256 L412 412" fill="none" stroke="black" stroke-width="12" stroke-linecap="round"/>
+  <text x="50%" y="90%" text-anchor="middle" font-family="Arial, Black, sans-serif" font-weight="900" font-size="24" fill="black">SHONEN // ACTION</text>
+  <defs>
+    <pattern id="halftone" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+      <circle cx="5" cy="5" r="2" fill="rgba(0,0,0,0.1)"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="url(#halftone)"/>
+</svg>

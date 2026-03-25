@@ -103,6 +103,7 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
         title: bookTitle,
         author: user.name || "Unknown Author",
         chapters: chapters,
+        isSynthesized: creationMode === 'synthesis'
       });
       toast.success("eBook created successfully!");
       onBookCreated(response.data._id);
@@ -154,7 +155,7 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
             </button>
           </div>
 
-          {creationMode === "synthesis" && user?.tier !== 'premium' ? (
+          {creationMode === "synthesis" && user?.tier !== 'premium' && (user?.synthesizedBookCount || 0) >= 1 ? (
             <div className="p-12 border border-accent/20 bg-surface-dark space-y-8 text-center animate-in zoom-in duration-500">
                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
                  <Sparkles size={32} className="text-accent" />
@@ -163,6 +164,7 @@ const CreateBookModel = ({ isOpen, onClose, onBookCreated }) => {
                  <h3 className="text-2xl font-serif font-black uppercase tracking-tighter text-primary">Synthesis Tier Required</h3>
                  <p className="text-sm text-secondary font-serif italic max-w-md mx-auto leading-relaxed">
                    AI-driven monograph synthesis is an exclusive feature of our Synthesis tier. 
+                   You have already used your **one-time free synthesis**. 
                    Join the ranks of advanced knowledge architects to unlock infinite intelligence.
                  </p>
                </div>

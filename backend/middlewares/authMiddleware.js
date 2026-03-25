@@ -23,14 +23,29 @@ const protect = async (req, res, next) => {
 };
 
 const premiumOnly = (req, res, next) => {
+    // Allow if user is premium
     if (req.user && req.user.tier === 'premium') {
-        next();
-    } else {
-        res.status(403).json({ 
-            message: 'Premium membership required. Upgrade to unlock AI Synthesis.',
-            code: 'PREMIUM_REQUIRED'
-        });
+        return next();
     }
+
+    const count = req.user?.synthesizedBookCount || 0;
+    const isOutline = req.originalUrl.includes('generate-outline');
+    const isChapter = req.originalUrl.includes('generate-chapter-content');
+
+    // Free Trial Logic: 
+    // - Allow starting one book if count < 1
+    // - Allow generating chapters for the first book if count <= 1
+    if (req.user && (
+        (isOutline && count < 1) || 
+        (isChapter && count <= 1)
+    )) {
+        return next();
+    }
+
+    res.status(403).json({ 
+        message: 'Synthesis tier required. You have already used your free AI synthesis trial. Upgrade to unlock infinite intelligence.',
+        code: 'PREMIUM_REQUIRED'
+    });
 };
 
 module.exports = { protect, premiumOnly };

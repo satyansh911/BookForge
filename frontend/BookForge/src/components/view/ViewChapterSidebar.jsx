@@ -101,17 +101,12 @@ const ViewChapterSidebar = ({
               <button
                 key={index}
                 onClick={() => {
-                  if (isSampleOnly && index > 0) {
-                    toast.error("Premium subscription required for this chapter.");
-                    return;
-                  }
                   onSelectChapter(index);
                   onClose();
                 }}
                 className={`
                   w-full text-left p-6 hover:bg-black group transition-all duration-300 border-b border-black/5 last:border-b-0
                   ${selectedChapterIndex === index ? 'bg-black text-white' : 'text-primary'}
-                  ${isSampleOnly && index > 0 ? 'opacity-30 grayscale cursor-not-allowed' : ''}
                 `}
               >
                 <div className={`font-serif font-black text-sm uppercase tracking-tight group-hover:text-white transition-colors ${selectedChapterIndex === index ? 'text-white' : ''}`}>
@@ -297,7 +292,7 @@ const ViewChapterSidebar = ({
                     >
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-[8px] font-black tracking-widest text-accent uppercase">
-                          {deal.isEbook ? 'Digital Edition' : 'Physical Edition'}
+                          {deal.isExternalSearch ? 'Market Search' : (deal.isEbook ? 'Digital Edition' : 'Physical Edition')}
                         </span>
                         <span className="text-[10px] font-bold text-primary">{deal.price}</span>
                       </div>

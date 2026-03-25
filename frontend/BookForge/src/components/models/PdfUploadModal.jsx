@@ -36,8 +36,7 @@ const PdfUploadModal = ({ isOpen, onClose, onBookCreated }) => {
     formData.append("pdf", file);
 
     try {
-      // Assuming we'll add this endpoint to API_PATHS
-      const response = await axiosInstance.post('/books/upload-pdf', formData, {
+      const response = await axiosInstance.post(API_PATHS.BOOKS.UPLOAD_PDF, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

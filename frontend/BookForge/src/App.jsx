@@ -14,6 +14,8 @@ import ProfilePage from './pages/ProfilePage'
 import PricingPage from './pages/PricingPage'
 import ExplorePage from './pages/ExplorePage'
 import BookDetailsPage from './pages/BookDetailsPage'
+import MangaPage from './pages/MangaPage'
+import DiscussionPage from './pages/DiscussionPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { useAuth } from './context/AuthContext'
 import DashboardLayout from './components/layout/DashboardLayout'
@@ -46,6 +48,8 @@ const App = () => {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/book/:bookId" element={<BookDetailsPage />} />
+          <Route path="/manga" element={<ProtectedRoute><MangaPage/></ProtectedRoute>} />
+          <Route path="/discuss/:type/:id" element={<ProtectedRoute><DiscussionPage/></ProtectedRoute>} />
         </Routes>
       </Layout>
     </>

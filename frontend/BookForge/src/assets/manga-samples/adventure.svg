@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#fafafa"/>
+  <path d="M50 462 L256 50 L462 462 Z" fill="none" stroke="black" stroke-width="8"/>
+  <circle cx="256" cy="256" r="60" fill="none" stroke="black" stroke-width="4"/>
+  <text x="50%" y="90%" text-anchor="middle" font-family="Arial, Black, sans-serif" font-weight="900" font-size="24" fill="black">ADVENTURE // FANTASY</text>
+  <path d="M0 462 H512" stroke="black" stroke-width="12"/>
+</svg>
