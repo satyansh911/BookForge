@@ -1,5 +1,6 @@
 const Character = require('../models/Character');
 const Discussion = require('../models/Discussion');
+const mongoose = require('mongoose');
 
 // @desc    Get top 3 characters
 // @route   GET /api/social/leaderboard
@@ -20,7 +21,17 @@ exports.getLeaderboard = async (req, res) => {
 // @access  Private
 exports.voteCharacter = async (req, res) => {
     try {
-        const character = await Character.findById(req.params.id);
+        const characterId = req.params.id;
+
+        // Validate ObjectId to prevent Mongoose cast errors (important for fallback IDs)
+        if (!mongoose.Types.ObjectId.isValid(characterId)) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Character not found or currently in preview mode' 
+            });
+        }
+
+        const character = await Character.findById(characterId);
         if (!character) {
             return res.status(404).json({ success: false, message: 'Character not found' });
         }

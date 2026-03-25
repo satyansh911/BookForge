@@ -97,7 +97,12 @@ const MangaPage = () => {
         toast.success("VOTE CAST! 💥");
       }
     } catch (error) {
-      if (error.response?.status === 400) {
+      if (error.response?.status === 404) {
+        toast.error("This character is in 'Preview' mode and cannot be hyped yet!", {
+          icon: '⏳',
+          style: { background: '#1A1A1A', color: '#FFF', border: '2px solid #FFD700' }
+        });
+      } else if (error.response?.status === 400) {
         toast.error("YOU ALREADY HYPED THIS CHARACTER! 🔥");
       } else if (error.code === 'ERR_INVALID_RESPONSE') {
         toast.error("Deployment Error: API Misconfigured (Received HTML).");
