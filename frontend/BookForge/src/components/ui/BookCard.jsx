@@ -3,10 +3,12 @@ import VerticalLabel from './VerticalLabel';
 import gsap from 'gsap';
 
 const BookCard = ({ book, variant = 'grid', onClick }) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || '';
-  const imageUrl = book.image && (book.image.startsWith('http') || book.image.startsWith('data:') || book.image.startsWith('/'))
-    ? book.image
-    : (book.image ? `${BASE_URL}${book.image}`.replace(/\\/g, '/') : '');
+  const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
+  const imageUrl = book.image ? (
+    book.image.startsWith('http') || book.image.startsWith('data:') 
+      ? book.image 
+      : `${BASE_URL}${book.image}`.replace(/\\/g, '/')
+  ) : '';
 
   const cardRef = useRef(null);
   const imgRef = useRef(null);

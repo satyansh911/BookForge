@@ -2,9 +2,13 @@ import { useNavigate } from "react-router-dom"
 import {Edit, Trash2} from "lucide-react"
 
 const BookCard = ({book, onDelete}) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || '';
+  const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
   const navigate = useNavigate();
-  const coverImageUrl = book?.coverImage ? `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/') : "";
+  const coverImageUrl = book?.coverImage ? (
+    book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
+      ? book.coverImage 
+      : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
+  ) : "";
   return (
     <div
       className="group relative bg-white rounded-xl overflow-hidden border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-xl hover:shadow-gray-100/50 hover:-translate-y-1 cursor-pointer"

@@ -92,7 +92,7 @@ const updateBookCover = async (req, res) => {
             return res.status(401).json({ message: 'Not authorized to update this book cover' });
         }
         if(req.file){
-            book.coverImage = `/${req.file.path}`;
+            book.coverImage = `/${req.file.path}`.replace(/\\/g, '/');
         } else{
             return res.status(400).json({ message: 'No file uploaded' });
         }

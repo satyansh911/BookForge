@@ -116,10 +116,12 @@ const BookDetailsPage = () => {
         );
     }
 
-    const BASE_URL = import.meta.env.VITE_BASE_URL || '';
-    const imageUrl = book.coverImage && (book.coverImage.startsWith('http') || book.coverImage.startsWith('/'))
-        ? book.coverImage
-        : (book.coverImage ? `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/') : '');
+    const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
+    const imageUrl = book.coverImage ? (
+        book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
+            ? book.coverImage 
+            : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
+    ) : '';
 
     return (
         <div className="min-h-screen bg-surface pb-32">

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react"
 import gsap from "gsap"
+import { Draggable } from "gsap/all"
+gsap.registerPlugin(Draggable);
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -15,7 +17,10 @@ import {
   Sparkles,
   Headphones,
   Bookmark,
-  Trash2
+  Trash2,
+  Maximize,
+  Minimize,
+  Volume2
 } from 'lucide-react';
 import toast from "react-hot-toast"
 import axiosInstance from "../../utils/axiosInstance"
@@ -58,6 +63,23 @@ const ViewBook = ({ book, isSampleOnly }) => {
   const lastTrackedPage = useRef({ chapter: selectedChapterIndex, page: currentPage });
   const dwellTimer = useRef(null);
   const currentAudioRef = useRef(null);
+  const bubbleRef = useRef(null);
+  const [isBubbleExpanded, setIsBubbleExpanded] = useState(false);
+
+  // Initialize Draggable for the Insight Bubble
+  useEffect(() => {
+    if (bubbleRef.current) {
+      Draggable.create(bubbleRef.current, {
+        type: "x,y",
+        edgeResistance: 0.65,
+        bounds: "body",
+        inertia: true,
+        onClick: function() {
+          setIsBubbleExpanded(prev => !prev);
+        }
+      });
+    }
+  }, []);
 
   const stopSpeech = () => {
     if (currentAudioRef.current) {
@@ -566,56 +588,75 @@ const ViewBook = ({ book, isSampleOnly }) => {
   return (
     <div className="fixed inset-0 z-[60] bg-[#121212] flex flex-col overflow-hidden font-serif" ref={readerRef}>
       {/* Header Bar */}
-      <header className="h-14 sm:h-16 bg-black/60 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-6 z-[60] flex-shrink-0">
-        <div className="flex items-center gap-6">
+      <header className={`h-16 bg-black border-b border-white/10 flex items-center justify-between px-6 z-[100] transition-all duration-500 w-full ${isDistractionFree && !showSettings ? '-translate-y-full opacity-0 absolute' : 'translate-y-0 opacity-100 relative mb-0'}`}>
+        <div className="flex items-center gap-3 md:gap-6">
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className={`p-2 hover:bg-white/5 transition-colors text-white/50 hover:text-white ${isDistractionFree ? 'hidden md:block' : ''}`}
+            className="p-2 hover:bg-white/5 transition-colors text-white/50 hover:text-white"
           >
             <Menu size={20} />
           </button>
-          <div className={isDistractionFree ? 'hidden md:block' : ''}>
-            <h1 className="text-[10px] uppercase tracking-[0.2em] text-white/80 truncate max-w-[150px] md:max-w-none">
+          <div className="max-w-[100px] md:max-w-none">
+            <h1 className="text-[10px] uppercase tracking-[0.2em] text-white/80 truncate">
               {book.title}
             </h1>
-            <p className="text-[9px] uppercase tracking-[0.1em] text-white/30 hidden sm:block">
+            <p className="text-[9px] uppercase tracking-[0.1em] text-white/30 hidden md:block">
               {book.author}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 md:gap-4">
           <button 
             onClick={handleAudiobookToggle}
-            className={`p-2 transition-colors ${isAudiobookMode ? 'text-accent' : 'text-white/40 hover:text-white'}`}
+            className={`p-2 transition-colors hidden sm:flex ${isAudiobookMode ? 'text-accent' : 'text-white/40 hover:text-white'}`}
             title="Audiobook Mode (Continuous)"
           >
-            <Headphones size={20} />
+            <Headphones size={18} />
           </button>
           <button 
             onClick={handleAddBookmark}
-            className="p-2 text-white/40 hover:text-white transition-colors"
+            className="p-2 text-white/40 hover:text-white transition-colors hidden sm:flex"
             title="Bookmark this position"
           >
-            <Bookmark size={20} />
+            <Bookmark size={18} />
+          </button>
+          <button 
+            onClick={() => setIsDistractionFree(!isDistractionFree)}
+            className="p-2 text-white/40 hover:text-white transition-colors"
+            title={isDistractionFree ? "Normal View" : "Immersive Mode"}
+          >
+            {isDistractionFree ? <Minimize size={18} /> : <Maximize size={18} />}
           </button>
           <button 
             onClick={() => setShowSettings(!showSettings)}
             className={`p-2 transition-colors ${showSettings ? 'text-accent' : 'text-white/40 hover:text-white'}`}
           >
-            <Settings size={20} />
+            <Settings size={18} />
           </button>
           <button 
             onClick={() => window.history.back()}
-            className="px-4 py-1.5 bg-white/5 hover:bg-accent text-white/60 hover:text-white text-[10px] font-bold tracking-[0.1em] border border-white/10 transition-all uppercase"
+            className="ml-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] uppercase tracking-[0.1em] border border-white/10 rounded-sm transition-all"
           >
-            Exit
+            <span className="hidden md:inline">EXIT</span>
+            <X size={14} className="md:hidden" />
           </button>
         </div>
       </header>
+      
+      {/* Floating Exit Fullscreen Button (Only in Distraction Free) */}
+      {isDistractionFree && (
+        <button 
+          onClick={() => setIsDistractionFree(false)}
+          className="fixed top-4 right-4 z-[110] p-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-full text-white/50 hover:text-white transition-all md:hidden"
+          title="Exit Fullscreen"
+        >
+          <Minimize size={20} />
+        </button>
+      )}
 
       {/* Top Progress Info Bar */}
-      <div className={`h-12 bg-black/40 backdrop-blur-md border-b border-white/5 flex items-center px-6 z-50 flex-shrink-0 transition-opacity duration-300 ${isDistractionFree && !showSettings ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+      <div className={`h-12 bg-black/40 backdrop-blur-md border-b border-white/5 flex items-center px-6 z-50 flex-shrink-0 transition-all duration-300 w-full ${isDistractionFree && !showSettings ? 'opacity-0 pointer-events-none absolute' : 'opacity-100 relative'}`}>
         <div className="flex-1 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
@@ -704,14 +745,21 @@ const ViewBook = ({ book, isSampleOnly }) => {
         )}
 
         <main className={`relative flex-1 flex items-center justify-center overflow-hidden bg-black/5 shadow-inner transition-all duration-500 ${isDistractionFree ? 'p-0 lg:p-0' : 'p-4 lg:p-12'}`}>
-          <div className="absolute inset-y-0 left-0 w-20 z-40 cursor-pointer flex items-center justify-center group" onClick={() => navigatePage(-1)}>
-            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
-              <ChevronLeft size={20} />
+          {/* Navigation Overlays */}
+          <div 
+            className={`absolute inset-y-0 left-0 w-[15%] max-w-[120px] z-50 cursor-pointer flex items-center justify-center transition-opacity duration-300 ${isDistractionFree ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`} 
+            onClick={() => navigatePage(-1)}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isDistractionFree ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/40 border border-white/10 opacity-0 group-hover:opacity-100'}`}>
+              <ChevronLeft size={24} />
             </div>
           </div>
-          <div className="absolute inset-y-0 right-0 w-20 z-40 cursor-pointer flex items-center justify-center group" onClick={() => navigatePage(1)}>
-            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
-              <ChevronRight size={20} />
+          <div 
+            className={`absolute inset-y-0 right-0 w-[15%] max-w-[120px] z-50 cursor-pointer flex items-center justify-center transition-opacity duration-300 ${isDistractionFree ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`} 
+            onClick={() => navigatePage(1)}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isDistractionFree ? 'bg-black/20 backdrop-blur-sm' : 'bg-black/40 border border-white/10 opacity-0 group-hover:opacity-100'}`}>
+              <ChevronRight size={24} />
             </div>
           </div>
 
@@ -846,6 +894,62 @@ const ViewBook = ({ book, isSampleOnly }) => {
           </div>
         </div>
       )}
+      {/* Floating Insight Bubble */}
+      <div 
+        ref={bubbleRef}
+        className="fixed bottom-10 right-10 z-[100] cursor-grab active:cursor-grabbing"
+      >
+        <div className={`relative transition-all duration-500 ${isBubbleExpanded ? 'w-64' : 'w-14 h-14'}`}>
+          {/* Main Bubble */}
+          <button 
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 ${isBubbleExpanded ? 'bg-accent scale-90' : 'bg-black/60 backdrop-blur-xl border border-white/10 hover:border-accent text-white hover:text-accent'}`}
+          >
+            {isBubbleExpanded ? <X size={20} /> : <Brain size={24} className="animate-pulse" />}
+          </button>
+
+          {/* Expanded Menu */}
+          <div className={`absolute bottom-0 right-0 bg-[#121212]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-6 shadow-[0_20px_50px_rgba(0,0,0,1)] transition-all duration-500 origin-bottom-right ${isBubbleExpanded ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-50 pointer-events-none'}`}>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-accent tracking-[0.2em] font-black uppercase">Knowledge Pulse</p>
+                  <p className="text-xl font-serif text-white font-black">{Math.round(progress)}%</p>
+                </div>
+                {wpm > 0 && (
+                  <div className="text-right">
+                    <p className="text-[8px] text-white/40 tracking-[0.2em] uppercase">Rate</p>
+                    <p className="text-sm font-mono text-white/80">{wpm} WPM</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={handleAudiobookToggle}
+                  className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${isAudiobookMode ? 'bg-accent/10 border-accent/30 text-accent' : 'bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10'}`}
+                >
+                  <Headphones size={18} />
+                  <span className="text-[8px] font-bold tracking-widest uppercase">Audio</span>
+                </button>
+                <button 
+                  onClick={handleAddBookmark}
+                  className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border bg-white/5 border-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <Bookmark size={18} />
+                  <span className="text-[8px] font-bold tracking-widest uppercase">Mark</span>
+                </button>
+              </div>
+
+              <div className="bg-black/40 rounded-lg p-3 border border-white/5">
+                <p className="text-[8px] text-white/20 tracking-widest uppercase mb-1">Current Anchor</p>
+                <p className="text-[10px] text-white/60 font-serif italic truncate">
+                   {selectedChapter.title} — Page {currentPage + 1}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

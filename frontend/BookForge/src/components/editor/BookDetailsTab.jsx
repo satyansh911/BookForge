@@ -9,10 +9,12 @@ const BookDetailsTab = ({
   isUploading,
   fileInputRef,
 }) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || '';
-  const coverImageUrl = book.coverImage && book.coverImage.startsWith('http')
-    ? book.coverImage
-    : (book.coverImage ? `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/') : '');
+  const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
+  const coverImageUrl = book.coverImage ? (
+    book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
+      ? book.coverImage 
+      : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
+  ) : '';
 
   return (
     <div className="flex-1 p-8 md:p-16 max-w-6xl mx-auto w-full space-y-20 animate-in fade-in duration-700">
