@@ -52,6 +52,7 @@ const MangaPage = () => {
   const [leaderboard, setLeaderboard] = React.useState(FALLBACK_CHARACTERS);
   const [loading, setLoading] = React.useState(false);
   const [selectedSample, setSelectedSample] = React.useState(null);
+  const [activeMobileCard, setActiveMobileCard] = React.useState(null);
   const { user } = useAuth();
 
   const MANGA_TRIVIA = [
@@ -411,7 +412,11 @@ const MangaPage = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 archive-grid mb-24">
             {mangaData.map((manga) => (
-              <div key={manga.id} className="archive-card flex bg-white border-4 border-black p-6 gap-6 relative group overflow-hidden shadow-[12px_12px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+              <div 
+                key={manga.id} 
+                className="archive-card flex bg-white border-4 border-black p-6 gap-6 relative group overflow-hidden shadow-[12px_12px_0_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                onClick={() => setActiveMobileCard(activeMobileCard === manga.id ? null : manga.id)}
+              >
                 {/* Premium Badge */}
                 {manga.isPremium && (
                   <div className="absolute top-0 right-0 p-2 bg-[#FFD700] border-l-4 border-b-4 border-black flex items-center gap-1 z-20">
@@ -422,9 +427,12 @@ const MangaPage = () => {
 
                 <div className="w-32 h-44 border-2 border-black flex-shrink-0 relative overflow-hidden">
                   <img src={manga.cover} alt={manga.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+                  <div className={`absolute inset-0 bg-black/40 ${activeMobileCard === manga.id ? 'opacity-100' : 'opacity-0'} group-hover:opacity-100 transition-opacity flex items-center justify-center p-4`}>
                      <button 
-                       onClick={() => manga.samplePages.length > 0 && setSelectedSample(manga.samplePages[0])}
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         manga.samplePages.length > 0 && setSelectedSample(manga.samplePages[0]);
+                       }}
                        className="bg-white text-black px-3 py-1 text-[10px] font-black uppercase border-2 border-black hover:bg-[#FFD700] transition-colors"
                       >
                        {manga.samplePages.length > 0 ? 'READ SAMPLE' : 'PREVIEW'}
@@ -475,6 +483,7 @@ const MangaPage = () => {
                 <div 
                   key={manga.id} 
                   className={`manga-card group relative bg-white border-4 border-black shadow-[8px_8px_0_rgba(0,0,0,1)] transition-all duration-300 hover:translate-x-1 hover:translate-y-1 hover:shadow-none`}
+                  onClick={() => setActiveMobileCard(activeMobileCard === manga.id ? null : manga.id)}
                 >
                   {/* Badge */}
                   <div className="absolute -top-3 -right-3 z-30 transform rotate-12">
@@ -492,21 +501,34 @@ const MangaPage = () => {
                     />
                     
                     {/* Character Overlay Accent */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6 translate-y-full group-hover:translate-y-0 transition-transform duration-500">
+                    <div className={`absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-6 ${activeMobileCard === manga.id ? 'translate-y-0' : 'translate-y-full'} group-hover:translate-y-0 transition-transform duration-500`}>
                       <p className="text-white text-[10px] font-bold leading-relaxed mb-4 italic">
                         "{manga.description}"
                       </p>
                       <div className="flex flex-col gap-2">
-                        <a href={manga.readUrl} target="_blank" className="w-full py-2 bg-[#00AEEF] text-white border-2 border-black text-center text-[10px] font-black tracking-widest hover:bg-[#0090D4] transition-colors">
+                        <a 
+                          href={manga.readUrl} 
+                          target="_blank" 
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full py-2 bg-[#00AEEF] text-white border-2 border-black text-center text-[10px] font-black tracking-widest hover:bg-[#0090D4] transition-colors"
+                        >
                           READ ONLINE
                         </a>
                         <button 
-                          onClick={() => navigate(`/discuss/manga/${manga.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/discuss/manga/${manga.id}`);
+                          }}
                           className="w-full py-2 bg-white text-black border-2 border-black text-center text-[10px] font-black tracking-widest hover:bg-gray-100 transition-colors"
                         >
                           JOIN DISCUSSIONS
                         </button>
-                        <a href={manga.buyUrl} target="_blank" className="w-full py-2 bg-[#FFD700] text-black border-2 border-black text-center text-[10px] font-black tracking-widest hover:bg-[#E6C200] transition-colors">
+                        <a 
+                          href={manga.buyUrl} 
+                          target="_blank" 
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full py-2 bg-[#FFD700] text-black border-2 border-black text-center text-[10px] font-black tracking-widest hover:bg-[#E6C200] transition-colors"
+                        >
                           BUY PHYSICAL
                         </a>
                       </div>
