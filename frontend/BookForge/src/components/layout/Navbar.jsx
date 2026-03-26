@@ -107,7 +107,7 @@ const Navbar = () => {
         {/* Mobile Menu Toggle */}
         <button 
           onClick={toggleMenu}
-          className="md:hidden p-2 text-primary hover:text-accent transition-colors"
+          className="md:hidden p-2 text-primary hover:text-accent transition-colors ml-4 sm:ml-6"
         >
           {isMenuOpen ? <CloseIcon size={24} /> : <Menu size={24} />}
         </button>

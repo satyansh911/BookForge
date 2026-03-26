@@ -116,7 +116,7 @@ const generateOutline = async (req, res) => {
 
 const generateChapterContent = async (req, res) => {
     try {
-        const {chapterTitle, chapterDescription, style} = req.body;
+    const {chapterTitle, chapterDescription, style, referenceText} = req.body;
         if(!chapterTitle){
             return res.status(400).json({ message: 'Please provide a chapter title' });
         }
@@ -141,6 +141,7 @@ const generateChapterContent = async (req, res) => {
         - Include subheadings if appropriate for the content length
         - End with a strong conclusion or transition to the next chapter
         - Write in plain text without markdown formatting
+        ${req.body.referenceText ? `\n        CRITICAL: Follow the vocabulary, tone, and stylistic nuances of the following reference material:\n        "${req.body.referenceText}"` : ''}
 
         Begin writing the chapter content now:`;
         
@@ -280,10 +281,22 @@ const speakText = async (req, res) => {
     }
 };
 
+const getChunks = (req, res) => {
+    const { text, size = 300 } = req.body;
+    if (!text) return res.status(400).json({ message: "No text provided" });
+    const words = text.split(/\s+/);
+    const chunks = [];
+    for (let i = 0; i < words.length; i += size) {
+        chunks.push(words.slice(i, i + size).join(' '));
+    }
+    res.json({ chunks });
+};
+
 module.exports = {
     generateOutline,
     generateChapterContent,
     getWordDefinition,
     continueStory,
-    speakText
+    speakText,
+    getChunks
 };

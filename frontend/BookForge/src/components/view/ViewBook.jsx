@@ -114,70 +114,69 @@ const ViewBook = ({ book, isSampleOnly }) => {
     const loadingToast = toast.loading("Synthesizing voice...");
     
     try {
-      const response = await axiosInstance.post(API_PATHS.AI.SPEAK, {
-        text,
-        voiceType: voicePreference
-      }, { responseType: 'blob' });
-      
-      console.log("Audio blob received:", response.data.size, "bytes", "Type:", response.data.type);
-      
-      if (response.data.type === 'application/json') {
-        const jsonText = await response.data.text();
-        try {
-          const err = JSON.parse(jsonText);
-          toast.error(err.message || "Quality synthesis failed.");
-          toast.dismiss(loadingToast);
-          return;
-        } catch (e) {}
+      // Get text chunks if it's long
+      let chunks = [text];
+      if (text.length > 1000) {
+        const chunkRes = await axiosInstance.post(API_PATHS.AI.GET_CHUNKS, { text, size: 250 });
+        chunks = chunkRes.data.chunks;
       }
 
-      if (response.data.size < 100) {
-        throw new Error("Received invalid audio data (too small).");
-      }
-
-      const audioUrl = URL.createObjectURL(response.data);
-      const audio = new Audio();
-      audio.src = audioUrl;
-      currentAudioRef.current = audio;
-      
-      audio.onplay = () => setIsSpeaking(true);
-      audio.onended = () => {
-        setIsSpeaking(false);
-        currentAudioRef.current = null;
-        
-        // Audiobook Mode: Move to next chapter if ended
-        if (isAudiobookMode && selectedChapterIndex < book.chapters.length - 1) {
-            const nextIdx = selectedChapterIndex + 1;
-            setSelectedChapterIndex(nextIdx);
-            setCurrentPage(0);
-            // Small delay to allow UI to settle before next synthesis
-            setTimeout(() => {
-                handleSpeak(book.chapters[nextIdx].content, true);
-            }, 1000);
-        } else if (isAudiobookMode) {
-            setIsAudiobookMode(false);
-            toast.success("Monograph concluded.");
+      const playNextChunk = async (index) => {
+        if (index >= chunks.length) {
+            setIsSpeaking(false);
+            currentAudioRef.current = null;
+            
+            // Audiobook Mode: Move to next chapter if ended
+            if (isAudiobookMode && selectedChapterIndex < book.chapters.length - 1) {
+                const nextIdx = selectedChapterIndex + 1;
+                setSelectedChapterIndex(nextIdx);
+                setCurrentPage(0);
+                setTimeout(() => {
+                    handleSpeak(book.chapters[nextIdx].content, true);
+                }, 1000);
+            } else if (isAudiobookMode) {
+                setIsAudiobookMode(false);
+                toast.success("Monograph concluded.");
+            }
+            return;
         }
-      };
 
-      audio.oncanplaythrough = () => {
-        audio.play().then(() => {
-          toast.dismiss(loadingToast);
-          toast.success("Synthesized successfully.", { icon: '🎙️' });
-        }).catch(err => {
-          console.error("Playback failed:", err);
-          toast.error("Playback blocked by browser.");
-          toast.dismiss(loadingToast);
-          setIsSpeaking(false);
+        const response = await axiosInstance.post(API_PATHS.AI.SPEAK, {
+            text: chunks[index],
+            voiceType: voicePreference
+        }, { responseType: 'blob' });
+
+        if (response.data.size < 100) throw new Error("Invalid audio data");
+
+        const audioUrl = URL.createObjectURL(response.data);
+        const audio = new Audio();
+        audio.src = audioUrl;
+        currentAudioRef.current = audio;
+        
+        audio.onplay = () => {
+            setIsSpeaking(true);
+            if (index === 0) toast.dismiss(loadingToast);
+        };
+
+        audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            playNextChunk(index + 1);
+        };
+
+        audio.onerror = (err) => {
+            console.error("Audio error:", err);
+            toast.error("Audio chunk failed to load.");
+            setIsSpeaking(false);
+        };
+
+        audio.play().catch(err => {
+            console.error("Playback failed:", err);
+            toast.error("Playback blocked.");
+            setIsSpeaking(false);
         });
       };
 
-      audio.onerror = (err) => {
-        console.error("Audio element error:", err);
-        toast.error("Failed to load synthesized audio.");
-        toast.dismiss(loadingToast);
-        setIsSpeaking(false);
-      };
+      await playNextChunk(0);
 
       setMenuPosition(null);
       window.getSelection().removeAllRanges();
@@ -278,6 +277,7 @@ const ViewBook = ({ book, isSampleOnly }) => {
         console.error(`Error attempting to enable full-screen mode: ${err.message}`);
       });
       setIsFullscreen(true);
+      setIsDistractionFree(true); // Automatically enter distraction-free in fullscreen
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
@@ -507,7 +507,7 @@ const ViewBook = ({ book, isSampleOnly }) => {
         let p = paragraph.trim();
         p = p.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         p = p.replace(/(?<!\*)\*(?!\*)(.*?)\*(?!\*)/g, '<em>$1</em>');
-        return `<p class="mb-12 last:mb-0">${p}</p>`;
+        return `<p class="mb-12 last:mb-0 text-justify hyphens-auto leading-relaxed">${p}</p>`;
       })
       .join('');
 
@@ -664,7 +664,10 @@ const ViewBook = ({ book, isSampleOnly }) => {
   );
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#121212] flex flex-col overflow-hidden font-serif" ref={readerRef}>
+    <div 
+      className={`fixed inset-0 z-[60] bg-[#121212] flex flex-col overflow-hidden font-serif ${isFullscreen ? 'w-screen h-screen' : ''}`} 
+      ref={readerRef}
+    >
       {/* Header Bar */}
       <header className={`h-16 bg-black border-b border-white/10 flex items-center justify-between px-6 z-[100] transition-all duration-500 w-full ${isDistractionFree && !showSettings ? '-translate-y-full opacity-0 absolute' : 'translate-y-0 opacity-100 relative mb-0'}`}>
         <div className="flex items-center gap-3 md:gap-6">
@@ -713,7 +716,13 @@ const ViewBook = ({ book, isSampleOnly }) => {
             <Settings size={18} />
           </button>
           <button 
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (isFullscreen && document.exitFullscreen) {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+              }
+              window.history.back();
+            }}
             className="ml-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] uppercase tracking-[0.1em] border border-white/10 rounded-sm transition-all"
           >
             <span className="hidden md:inline">EXIT</span>
@@ -722,14 +731,20 @@ const ViewBook = ({ book, isSampleOnly }) => {
         </div>
       </header>
       
-      {/* Floating Exit Fullscreen Button (Only in Distraction Free) */}
-      {isDistractionFree && (
+      {/* Floating Exit Fullscreen Button (Persistent in Fullscreen/Immersive) */}
+      {(isDistractionFree || isFullscreen) && (
         <button 
-          onClick={() => setIsDistractionFree(false)}
-          className="fixed top-4 right-4 z-[110] p-3 bg-black/40 backdrop-blur-md border border-white/10 rounded-full text-white/50 hover:text-white transition-all md:hidden"
-          title="Exit Fullscreen"
+          onClick={() => {
+            if (document.fullscreenElement) {
+              document.exitFullscreen();
+              setIsFullscreen(false);
+            }
+            setIsDistractionFree(false);
+          }}
+          className="fixed top-6 right-6 z-[110] p-3 bg-black/60 backdrop-blur-xl border border-white/10 rounded-full text-white/40 hover:text-accent hover:scale-110 transition-all shadow-2xl group"
+          title="Exit Immersive Mode (Esc)"
         >
-          <Minimize size={20} />
+          <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
         </button>
       )}
 
@@ -769,6 +784,23 @@ const ViewBook = ({ book, isSampleOnly }) => {
           </div>
         </div>
       </div>
+
+      {/* Floating Stats Overlay (Only in Distraction Free / Immersive) */}
+      {isDistractionFree && !showSettings && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] flex items-center gap-6 px-6 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full pointer-events-none">
+          <div className="flex items-center gap-2">
+            <span className="text-[8px] font-black tracking-[0.2em] text-accent uppercase">{Math.round(progress)}%</span>
+            <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-accent" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+          {wpm > 0 && (
+            <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+              <span className="text-[8px] font-black tracking-[0.2em] text-white/80 uppercase">{wpm} WPM</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Body with Sidebar and Reader */}
       <div className="flex-1 flex relative overflow-hidden">
@@ -827,17 +859,6 @@ const ViewBook = ({ book, isSampleOnly }) => {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Navigation Controls: Focused on edges to avoid hiding content */}
-          <div className="absolute inset-y-0 left-0 w-12 z-[100] flex items-center justify-center pointer-events-none">
-            <button 
-              onClick={handlePrevPage}
-              className="p-3 bg-black/40 backdrop-blur-md text-white/40 hover:text-accent hover:bg-black/60 rounded-r-xl transition-all pointer-events-auto border-y border-r border-white/10"
-              title="Previous Page"
-            >
-              <ChevronLeft size={24} />
-            </button>
-          </div>
-
           <div className="absolute inset-y-0 left-0 w-12 z-[100] flex items-center justify-center pointer-events-none">
             <button 
               onClick={handlePrevPage}

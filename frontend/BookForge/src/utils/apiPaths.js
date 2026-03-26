@@ -16,6 +16,7 @@ export const API_PATHS = {
         ADD_BOOKMARK: "/api/books/bookmarks",
         DELETE_BOOKMARK: "/api/books/bookmarks",
         UPLOAD_PDF: "/api/books/upload-pdf",
+        INGEST_URL: "/api/books/ingest-url",
     },
     AI: {
         GENERATE_OUTLINE: "/api/ai/generate-outline",
@@ -23,6 +24,7 @@ export const API_PATHS = {
         DEFINE: "/api/ai/define",
         SPEAK: "/api/ai/speak",
         CONTINUE: "/api/ai/continue",
+        GET_CHUNKS: "/api/ai/get-chunks",
     },
     EXPORT: {
         PDF: "/api/export",

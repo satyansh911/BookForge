@@ -16,6 +16,7 @@ const {
     getRelatedBooks,
     getBookDeals
 } = require('../controller/bookController');
+const { ingestFromUrl } = require('../controller/ingestController');
 const { protect } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
@@ -30,5 +31,6 @@ router.route('/bookmarks/:id/:bookmarkId').delete(protect, deleteBookmark);
 router.route('/deals/:id').get(protect, getBookDeals);
 router.route('/:id').get(protect, getBookById).put(protect, updateBook).delete(protect, deleteBook);
 router.route('/cover/:id').put(protect, upload.single('coverImage'), updateBookCover);
+router.post('/ingest-url', protect, ingestFromUrl);
 
 module.exports = router;

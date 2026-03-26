@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
-import { Plus, Quote, Trash2, BookOpen } from "lucide-react"
+import { Plus, Quote, Trash2, BookOpen, Link as LinkIcon, Sparkles } from "lucide-react"
 
 import Button from "../components/ui/Button"
 import BookCard from "../components/ui/BookCard"
@@ -62,6 +62,23 @@ const DashboardPage = () => {
     }
   };
   
+  const handleIngestUrl = async () => {
+    const url = window.prompt("Enter the URL of the book or article you wish to ingest:");
+    if (!url) return;
+
+    const loadingToast = toast.loading("Ingesting manuscript from the digital aether...");
+    try {
+      const response = await axiosInstance.post(API_PATHS.BOOKS.INGEST_URL, { url });
+      toast.success("Manuscript materialized in your archives!", { id: loadingToast });
+      // Refresh books
+      const refreshed = await axiosInstance.get(API_PATHS.BOOKS.GET_BOOKS);
+      setBooks(refreshed.data);
+      navigate(`/view-book/${response.data.bookId}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Ingestion failed. The source may be protected.", { id: loadingToast });
+    }
+  };
+
   const handleDeleteBook = async (bookId) => {
     if (!window.confirm("Are you certain you wish to purge this monograph from the archives? This action is irreversible.")) {
       return;
@@ -113,6 +130,14 @@ const DashboardPage = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto self-start lg:self-end mt-4">
+            <Button
+              variant="outline"
+              onClick={handleIngestUrl}
+              className="flex items-center justify-center sm:justify-start gap-3 md:gap-6 py-4 md:py-5 px-6 md:px-12 group w-full sm:w-auto overflow-hidden relative"
+            >
+              <Sparkles size={16} className="text-yellow-400 group-hover:scale-125 transition-transform" />
+              <span className="text-[10px] md:text-sm tracking-[0.2em] font-bold">MAGIC IMPORT</span>
+            </Button>
             <Button
               variant="outline"
               onClick={() => setIsPdfModalOpen(true)}
