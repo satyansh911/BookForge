@@ -53,18 +53,26 @@ const ingestFromUrl = async (req, res) => {
         const newBook = new Book({
             title,
             author: 'Internet Resource',
-            summary: `Content ingested from ${url}`,
-            chapters,
-            user: req.user._id,
+            subtitle: `Content ingested from ${url}`,
+            chapters: chapters.slice(0, 50),
+            // The Book schema field is `userId` — writing `user` here left the
+            // required field unset, so every ingest failed validation.
+            userId: req.user._id,
             coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=2735&auto=format&fit=crop',
-            category: 'Archived'
+            status: 'draft'
         });
 
-        await newBook.save();
-        res.status(201).json({ message: 'Book ingested successfully (using lite-ingest)', bookId: newBook._id });
+        const savedBook = await newBook.save();
+        // `bookId` is what DashboardPage reads; `_id` keeps the shape identical
+        // to every other book-returning endpoint.
+        res.status(201).json({
+            message: 'Book ingested successfully',
+            bookId: savedBook._id,
+            ...savedBook.toObject(),
+        });
     } catch (error) {
         console.error("Ingestion error:", error);
-        res.status(500).json({ message: 'Failed to ingest content from URL' });
+        res.status(500).json({ message: `Failed to ingest content from URL: ${error.message}` });
     }
 };
 

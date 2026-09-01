@@ -1,25 +1,20 @@
 import { useNavigate } from "react-router-dom"
 import {Edit, Trash2} from "lucide-react"
+import BookCover from '../ui/BookCover';
 
 const BookCard = ({book, onDelete}) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
   const navigate = useNavigate();
-  const coverImageUrl = book?.coverImage ? (
-    book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
-      ? book.coverImage 
-      : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
-  ) : "";
   return (
     <div
       className="group relative bg-white rounded-xl overflow-hidden border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:shadow-xl hover:shadow-gray-100/50 hover:-translate-y-1 cursor-pointer"
       onClick={() => navigate(`/view-book/${book._id}`)}
     >
       <div className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-        <img
-          src={coverImageUrl}
-          alt={book.title}
-          className="w-full aspect-[16/25] object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => { e.target.src = "" }}
+        <BookCover
+          src={book?.coverImage}
+          title={book?.title}
+          className="w-full aspect-[16/25] transition-transform duration-500 group-hover:scale-105"
+          imgClassName="w-full aspect-[16/25] object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
           <button

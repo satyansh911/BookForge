@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import typographyImg from '../assets/bookimgs/typography.png';
 import gridSystemsImg from '../assets/bookimgs/gridsystems.png';
 import artOfColorImg from '../assets/bookimgs/theartofcolor.jpg';
+import { resolveAssetUrl } from '../utils/config';
 
 const BookDetailsPage = () => {
     const { bookId } = useParams();
@@ -116,12 +117,7 @@ const BookDetailsPage = () => {
         );
     }
 
-    const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
-    const imageUrl = book.coverImage ? (
-        book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
-            ? book.coverImage 
-            : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
-    ) : '';
+    const imageUrl = resolveAssetUrl(book.coverImage);
 
     return (
         <div className="min-h-screen bg-surface pb-32">

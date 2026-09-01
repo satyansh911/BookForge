@@ -1,4 +1,6 @@
 const Book = require('../models/Book');
+const { sendError } = require('../utils/apiError');
+const { searchVolumes } = require('../utils/googleBooks');
 
 const createBook = async (req, res) => {
     try{
@@ -24,8 +26,7 @@ const createBook = async (req, res) => {
 
         res.status(201).json(savedBook);
     } catch (error) {
-        console.error("Create Book Error:", error);
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error, 'Failed to create book');
     }
 };
 
@@ -34,7 +35,7 @@ const getBooks = async (req, res) => {
         const books = await Book.find({ userId: req.user._id }).sort({ createdAt: -1 });
         res.status(200).json(books);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -49,7 +50,7 @@ const getBookById = async (req, res) => {
         }
         res.status(200).json(book);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -70,7 +71,7 @@ const updateBook = async (req, res) => {
         );
         res.status(200).json(updatedBook);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -86,7 +87,7 @@ const deleteBook = async (req, res) => {
         await book.deleteOne();
         res.status(200).json({ message: 'Book deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -108,24 +109,25 @@ const updateBookCover = async (req, res) => {
         const updatedBook = await book.save();
         res.status(200).json(updatedBook);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
 const uploadPdf = async (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    let filePath = null;
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No PDF file uploaded' });
         }
 
-        const fs = require('fs');
-        const path = require('path');
-        const pdf = require('pdf-parse');
-        
-        const filePath = path.resolve(req.file.path);
+        const { extractPdfText } = require('../utils/pdfText');
+
+        filePath = path.resolve(req.file.path);
         const dataBuffer = fs.readFileSync(filePath);
-        const data = await pdf(dataBuffer);
-        
+        const data = await extractPdfText(dataBuffer);
+
         const text = data.text.trim();
         if (!text || text.length < 10) {
             console.warn("PDF Text Extraction yielded very little text:", text.length);
@@ -155,14 +157,20 @@ const uploadPdf = async (req, res) => {
         });
 
         const savedBook = await book.save();
-        fs.unlinkSync(filePath);
 
         res.status(201).json(savedBook);
     } catch (error) {
         console.error("PDF Ingestion Error Details:", error);
-        res.status(500).json({ 
-            message: error.message || 'Failed to ingest PDF. Ensure it is text-readable and not secured.' 
+        res.status(400).json({
+            message: error.message || 'Failed to ingest PDF. Ensure it is text-readable and not secured.'
         });
+    } finally {
+        // Always remove the temp upload — the old code only unlinked on the
+        // success path, so every failed or malformed PDF leaked a file into
+        // uploads/ forever.
+        if (filePath && fs.existsSync(filePath)) {
+            try { fs.unlinkSync(filePath); } catch (e) { console.warn('Temp cleanup failed:', e.message); }
+        }
     }
 };
 
@@ -184,7 +192,7 @@ const updateBookProgress = async (req, res) => {
         const updatedBook = await book.save();
         res.status(200).json(updatedBook);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -198,7 +206,7 @@ const addAnnotation = async (req, res) => {
         await book.save();
         res.status(201).json(book.annotations[book.annotations.length - 1]);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -212,7 +220,7 @@ const deleteAnnotation = async (req, res) => {
         await book.save();
         res.status(200).json({ message: 'Annotation deleted' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -221,24 +229,23 @@ const getRelatedBooks = async (req, res) => {
         const book = await Book.findById(req.params.id);
         if (!book) return res.status(404).json({ message: 'Book not found' });
 
-        const axios = require('axios');
-        // Search only by title to find the original work (even if reimagined)
-        const query = encodeURIComponent(book.title);
-        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=5`);
-        
-        const related = response.data.items?.map(item => ({
+        // Search only by title to find the original work (even if reimagined).
+        // A failed lookup yields null; the sidebar simply shows nothing rather
+        // than erroring the whole reader.
+        const items = await searchVolumes(book.title, 5);
+
+        const related = (items || []).map(item => ({
             id: item.id,
             title: item.volumeInfo.title,
             authors: item.volumeInfo.authors,
             thumbnail: item.volumeInfo.imageLinks?.thumbnail,
             description: item.volumeInfo.description,
             previewLink: item.volumeInfo.previewLink
-        })) || [];
+        }));
 
         res.status(200).json(related);
     } catch (error) {
-        console.error("Related Books Error:", error);
-        res.status(500).json({ message: 'Failed to fetch related books' });
+        return sendError(res, error, 'Failed to fetch related books');
     }
 };
 
@@ -247,17 +254,17 @@ const getBookDeals = async (req, res) => {
         const book = await Book.findById(req.params.id);
         if (!book) return res.status(404).json({ message: 'Book not found' });
 
-        const axios = require('axios');
-        // Search only by book title to find original published works
-        const query = encodeURIComponent(book.title);
-        const response = await axios.get(`https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=10`);
-        
+        // Search only by book title to find original published works.
+        // Returns null on rate limit / outage, in which case we fall through to
+        // the external-search fallbacks below instead of failing the request.
+        const items = await searchVolumes(book.title, 10);
+
         let deals = [];
         const seenTitles = new Set();
         const baseTitle = book.title.toLowerCase().trim();
 
-        if (response.data.items) {
-            deals = response.data.items.map(item => {
+        if (items) {
+            deals = items.map(item => {
                 const title = item.volumeInfo.title;
                 const lowTitle = title.toLowerCase().trim();
                 const author = item.volumeInfo.authors?.[0] || "";
@@ -314,8 +321,7 @@ const getBookDeals = async (req, res) => {
 
         res.status(200).json(deals);
     } catch (error) {
-        console.error("Book Deals Error:", error);
-        res.status(500).json({ message: 'Failed to fetch deals' });
+        return sendError(res, error, 'Failed to fetch deals');
     }
 };
 
@@ -329,7 +335,7 @@ const addBookmark = async (req, res) => {
         await book.save();
         res.status(201).json(book.bookmarks[book.bookmarks.length - 1]);
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 
@@ -343,7 +349,7 @@ const deleteBookmark = async (req, res) => {
         await book.save();
         res.status(200).json({ message: 'Bookmark deleted' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        return sendError(res, error);
     }
 };
 

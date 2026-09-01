@@ -34,7 +34,7 @@ const DOCX_STYLES = {
     spacing: {
         paragraphBefore: 200,
         paragraphAfter: 200,
-        chpaterBefore: 400,
+        chapterBefore: 400,
         chapterAfter: 300,
         headingBefore: 300,
         headingAfter: 150,  
@@ -413,12 +413,12 @@ book.chapters.forEach((chapter, index) => {
                     }),
                 ],
                 spacing: {
-                    before: DOCX_STYLES.spacing.chpaterBefore,
+                    before: DOCX_STYLES.spacing.chapterBefore,
                     after: DOCX_STYLES.spacing.chapterAfter,
                 },
             })
         );
-        const contentParagraphs = parseMarkdownToDocx(chapter.content || "");
+        const contentParagraphs = processMarkdownToDocx(chapter.content || "");
         sections.push(...contentParagraphs);
     } catch (chapterErr) {
         console.error(`Error processing chapter "${index}":`, chapterErr);
@@ -638,7 +638,7 @@ const renderMarkdown = (doc, markdown) => {
             } else if(token.type === 'bullet_list_open'){
                 inList = true;
                 listType = 'bullet';
-                doc.modeDown(
+                doc.moveDown(
                     TYPOGRAPHY.spacing.listSpacing / TYPOGRAPHY.sizes.body
                 );
             } else if(token.type === 'bullet_list_close'){

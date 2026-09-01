@@ -1,8 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Startup Diagnostic: List available models immediately
+// Startup Diagnostic: list the models this key can actually reach, so a
+// deployment that would fail at request time announces it at boot instead.
+// Skipped without a key (nothing to diagnose) and under test.
 (async () => {
+    if (!process.env.GEMINI_API_KEY || process.env.NODE_ENV === 'test') return;
     try {
         const axios = require('axios');
         console.log("--- STARTUP AI DIAGNOSTIC ---");
@@ -13,6 +16,18 @@ const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         console.error("Startup AI Diagnostic Failed:", e.response?.data?.error?.message || e.message);
     }
 })();
+
+/**
+ * Guard every AI route: without a key the fallback ladder below burns six
+ * network round-trips before failing with an opaque error. Fail fast instead.
+ */
+function aiUnavailable(res) {
+    if (process.env.GEMINI_API_KEY) return false;
+    res.status(503).json({
+        message: 'AI service not configured. Add GEMINI_API_KEY to backend/.env and restart the server.',
+    });
+    return true;
+}
 
 /**
  * Helper to get a working model with fallback
@@ -56,10 +71,12 @@ async function getRobustModel(ai, prompt) {
 
 const generateOutline = async (req, res) => {
     try {
-        const {topic, style,numChapters, description} = req.body;
+        if (aiUnavailable(res)) return;
+        const {topic, numChapters, description} = req.body;
         if(!topic){
             return res.status(400).json({ message: 'Please provide a topic for the outline' });
         }
+        const style = req.body.style || 'Narrative';
         const prompt = `You are an expert book outline generator. Create a comprehensive book outline based on the following requirements:
         Topic: "${topic}"
         ${description ? `Description: ${description}` : ''}
@@ -116,10 +133,14 @@ const generateOutline = async (req, res) => {
 
 const generateChapterContent = async (req, res) => {
     try {
-    const {chapterTitle, chapterDescription, style, referenceText} = req.body;
+        if (aiUnavailable(res)) return;
+    const {chapterTitle, chapterDescription, referenceText} = req.body;
         if(!chapterTitle){
             return res.status(400).json({ message: 'Please provide a chapter title' });
         }
+        // `style` is optional from several call sites; without a default the
+        // `style.toLowerCase()` below threw and the request 500'd.
+        const style = req.body.style || 'Narrative';
         const prompt=`You are an expert writer specializing in ${style} content. Write a complete chapter for a book with the following specifications:
 
         Chapter Title: "${chapterTitle}"
@@ -155,6 +176,7 @@ const generateChapterContent = async (req, res) => {
 
 const getWordDefinition = async (req, res) => {
     try {
+        if (aiUnavailable(res)) return;
         const { text, context } = req.body;
         if (!text) {
             return res.status(400).json({ message: 'Please provide text to define' });
@@ -191,6 +213,7 @@ const getWordDefinition = async (req, res) => {
 
 const continueStory = async (req, res) => {
     try {
+        if (aiUnavailable(res)) return;
         const { title, summary, currentChapters } = req.body;
         if (!title) {
             return res.status(400).json({ message: 'Please provide a title to continue' });

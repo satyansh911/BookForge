@@ -1,6 +1,7 @@
 import InputField from "../ui/InputField"
 import Button from "../ui/Button"
 import { UploadCloud, Image as ImageIcon } from "lucide-react"
+import { resolveAssetUrl } from "../../utils/config"
 
 const BookDetailsTab = ({
   book,
@@ -9,12 +10,7 @@ const BookDetailsTab = ({
   isUploading,
   fileInputRef,
 }) => {
-  const BASE_URL = import.meta.env.VITE_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
-  const coverImageUrl = book.coverImage ? (
-    book.coverImage.startsWith('http') || book.coverImage.startsWith('data:') 
-      ? book.coverImage 
-      : `${BASE_URL}${book.coverImage}`.replace(/\\/g, '/')
-  ) : '';
+  const coverImageUrl = resolveAssetUrl(book.coverImage);
 
   return (
     <div className="flex-1 p-8 md:p-16 max-w-6xl mx-auto w-full space-y-20 animate-in fade-in duration-700">

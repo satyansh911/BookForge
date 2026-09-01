@@ -288,7 +288,7 @@ same collection serves book threads (`ObjectId` as string) and manga threads (a 
 
 ## 🔌 API Reference
 
-Base: `http://localhost:5000` · All 🔒 routes need `Authorization: Bearer <jwt>`.
+Base: `http://localhost:4000` · All 🔒 routes need `Authorization: Bearer <jwt>`.
 
 ### `/api/auth`
 
@@ -421,7 +421,7 @@ Two doors into the same destination: an unstructured blob becomes a chaptered `B
 ```mermaid
 flowchart TB
     subgraph PDF["📄 POST /books/upload-pdf"]
-        P1["multer → uploads/<br/>10 MB cap, pdf|jpg|png|gif"] --> P2["pdf-parse extract"]
+        P1["multer → uploads/<br/>10 MB cap, pdf|jpg|png|gif"] --> P2["pdfjs-dist extract"]
         P2 --> P3{"text.length ≥ 10?"}
         P3 -->|no| P4["500 — scanned or encrypted"]
         P3 -->|yes| P5["Chunk @ 5 000 chars"]
@@ -605,8 +605,8 @@ cast errors when someone tries to vote.
 ### Prerequisites
 
 - **Node.js 18+**
-- **MongoDB** — Atlas or local
-- A **Google Gemini** API key
+- **MongoDB** — Atlas, a local install, or the bundled local server (below)
+- A **Google Gemini** API key (AI routes return a clean 503 without one)
 - A **Smallest AI** API key (optional — TTS falls back to the browser)
 
 ### 1 · Backend
@@ -615,8 +615,21 @@ cast errors when someone tries to vote.
 cd backend
 npm install
 cp .env.example .env        # fill in the values below
-npm run dev                 # nodemon → http://localhost:5000
+npm run dev                 # nodemon → http://localhost:4000
 ```
+
+**No MongoDB handy?** The repo ships a zero-setup local server — no Atlas account, no
+network, and the data persists in `backend/.local-db` between runs:
+
+```bash
+npm run db:local            # leave running; then set in backend/.env:
+                            # MONGO_URI=mongodb://127.0.0.1:27017/bookforge
+```
+
+> ⚠️ **macOS: do not use port 5000.** The AirPlay Receiver (ControlCenter) binds it and
+> answers every request with an empty `403`, which looks exactly like a broken backend.
+> The default is `4000` for this reason. If you must free 5000, turn off
+> System Settings → General → AirDrop & Handoff → AirPlay Receiver.
 
 Watch the boot log — the startup diagnostic prints every Gemini model your key can reach:
 
@@ -637,14 +650,25 @@ node seedCharacters.js
 ```bash
 cd frontend/BookForge
 npm install
-cp .env.example .env        # VITE_BASE_URL=http://localhost:5000
+cp .env.example .env        # VITE_BASE_URL=http://localhost:4000
 npm run dev                 # → http://localhost:5173
 ```
 
 ### 3 · Verify
 
 ```bash
-curl http://localhost:5000        # → "BookForge API is running 🚀"
+curl http://localhost:4000/api/health   # → {"status":"ok","db":"connected",...}
+```
+
+### 4 · Run the end-to-end suite
+
+Boots an in-memory MongoDB, mounts the real Express app, and drives every user-facing
+workflow — auth, ownership isolation, CRUD, ingestion, the reader, export, social, and the
+freemium gate. AI and third-party HTTP calls are stubbed, so it needs no API keys and no
+running database:
+
+```bash
+npm run test:e2e            # 69 checks
 ```
 
 ### Deployment
@@ -683,7 +707,7 @@ The repo ships a set of standalone probes, useful when a key or model misbehaves
 | `MONGO_URI` | ✅ | MongoDB connection string |
 | `JWT_SECRET` | ✅ | Signs and verifies auth tokens |
 | `GEMINI_API_KEY` | ✅ | All AI generation |
-| `PORT` | ⬜ | Defaults to `5000` |
+| `PORT` | ⬜ | Defaults to `4000`. Avoid 5000 on macOS — the AirPlay Receiver owns it |
 | `CORS_ORIGINS` | ⬜ | Comma-separated allowlist; `*.vercel.app` always permitted |
 | `SMALLEST_AI_API_KEY` | ⬜ | TTS narration — without it, `needsFallback` → browser voice |
 | `ELEVEN_LABS_API_KEY` | ⬜ | Only used by the legacy diagnostic scripts |
@@ -852,6 +876,33 @@ flowchart TB
 
 ## 🗺 Roadmap
 
+### Recently fixed
+
+- [x] **DOCX export produced empty chapters** — a call to `parseMarkdownToDocx` (the
+      function is named `processMarkdownToDocx`) threw for every chapter inside a
+      swallowing `try/catch`, so exports were structurally valid but contained no prose
+- [x] **PDF export dropped bullet lists** — `doc.modeDown` typo for `doc.moveDown`
+- [x] **URL ingestion always failed** — wrote `user` instead of the schema's `userId`,
+      so every ingest failed validation with a 500
+- [x] **Port 5000 collides with macOS AirPlay** — default moved to 4000, and a port clash
+      is now a clear message instead of a server that claims to have started
+- [x] **Frontend defaulted to `localhost:8000`** — a port nothing has ever listened on,
+      duplicated across five files; now one `utils/config.js`
+- [x] **Landing-page covers pointed at the API origin** — Vite bundle assets were being
+      prefixed with `BASE_URL` and came back `ERR_BLOCKED_BY_ORB`
+- [x] **Google Books 429 broke the reader** — upstream rate limits surfaced as 500s;
+      now cached, and enrichment degrades to empty instead of failing the page
+- [x] **`pdf-parse` swapped for `pdfjs-dist`** — the 2019 build could not read pdfkit
+      output, so a PDF exported by BookForge could not be re-ingested by BookForge
+- [x] **Temp uploads leaked** — failed PDF ingests left files in `uploads/` forever
+- [x] **Malformed ids returned 500** — Mongoose `CastError`/`ValidationError` now map to
+      404/400
+- [x] **Reader rendered a stray navbar and footer** — two sibling `<Routes>` trees
+      collapsed into one, which also silenced the "No routes matched" warnings
+- [x] **End-to-end test suite** — 69 checks, `npm run test:e2e`
+
+### Still open
+
 - [ ] Move `uploads/` to object storage — unblocks horizontal scaling and stops deploys eating covers
 - [ ] Re-enable `cheerio` in `ingestController` and delete the regex fallbacks
 - [ ] SSRF hardening on `/books/ingest-url`
@@ -860,9 +911,8 @@ flowchart TB
 - [ ] Rate limiting on every AI route
 - [ ] Pagination and projection on `GET /books`
 - [ ] `httpOnly` cookie auth with refresh rotation
-- [ ] Reconcile `.env.example` with the variables the code actually reads
 - [ ] Real payment integration behind `tier: 'premium'`
-- [ ] Test suite — there is none today
+- [ ] Code-split the frontend bundle (1.7 MB JS; several source images exceed 5 MB)
 
 ---
 
