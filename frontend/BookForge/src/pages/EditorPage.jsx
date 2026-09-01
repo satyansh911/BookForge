@@ -154,25 +154,46 @@ const EditorPage = () => {
     }
   };
 
-  const handleExportPDF = async () => {
-    toast.loading("SYNTHESIZING PDF...");
+  // One downloader for both formats. The /doc endpoint has always existed on
+  // the API but was never wired to a control, so DOCX export was unreachable.
+  const downloadExport = async (format) => {
+    const spec = {
+      pdf: { path: "pdf", ext: "pdf", label: "PDF" },
+      doc: { path: "doc", ext: "docx", label: "DOCX" },
+    }[format];
+
+    const pending = toast.loading(`SYNTHESIZING ${spec.label}...`);
     try {
-      const response = await axiosInstance.get(`${API_PATHS.EXPORT.PDF}/${bookId}/pdf`, { responseType: "blob" });
+      const response = await axiosInstance.get(
+        `${API_PATHS.EXPORT.PDF}/${bookId}/${spec.path}`,
+        { responseType: "blob" }
+      );
+
+      // A JSON error body arrives as a Blob under responseType:"blob", so a
+      // failed export would otherwise "succeed" and save an unopenable file.
+      if (response.data.type && response.data.type.includes("application/json")) {
+        const text = await response.data.text();
+        throw new Error(JSON.parse(text).message || "Export failed");
+      }
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `${book.title}.pdf`);
+      link.setAttribute("download", `${book.title}.${spec.ext}`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast.dismiss();
-      toast.success("PDF PUBLISHED.");
+      toast.dismiss(pending);
+      toast.success(`${spec.label} PUBLISHED.`);
     } catch (error) {
-      toast.dismiss();
-      toast.error("EXPORT FAILED.");
+      toast.dismiss(pending);
+      toast.error(error.message || "EXPORT FAILED.");
     }
   };
+
+  const handleExportPDF = () => downloadExport("pdf");
+  const handleExportDoc = () => downloadExport("doc");
 
   if (isLoading || !book) {
     return (
@@ -263,6 +284,9 @@ const EditorPage = () => {
             >
               <DropdownItem onClick={handleExportPDF}>
                 <FileText size={14} className="mr-3" /> PDF DOCUMENT
+              </DropdownItem>
+              <DropdownItem onClick={handleExportDoc}>
+                <FileText size={14} className="mr-3" /> WORD DOCUMENT
               </DropdownItem>
             </Dropdown>
             <Button
